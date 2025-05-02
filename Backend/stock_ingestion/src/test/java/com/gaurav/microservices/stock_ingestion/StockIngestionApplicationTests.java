@@ -1,10 +1,10 @@
-package com.gaurav.microservices.stock_input_monitor;
+package com.gaurav.microservices.stock_ingestion;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class StockInputMonitorApplicationTests {
+class StockIngestionApplicationTests {
 
     @Test
     void contextLoads() {

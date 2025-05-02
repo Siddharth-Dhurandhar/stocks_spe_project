@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.gaurav.microservices</groupId>
-    <artifactId>stock_input_monitor</artifactId>
+    <artifactId>stock_ingestion</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>stock_input_monitor</name>
-    <description>stock_input_monitor</description>
+    <name>stock_ingestion</name>
+    <description>stock_ingestion</description>
     <url/>
     <licenses>
         <license/>
