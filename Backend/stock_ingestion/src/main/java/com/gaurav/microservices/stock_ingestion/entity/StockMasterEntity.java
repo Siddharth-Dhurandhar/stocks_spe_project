@@ -28,4 +28,7 @@ public class StockMasterEntity {
 
     @Column(length = 500)
     private String stockDescription;
+
+    @Column(nullable = false)
+    private Float volatility;
 }
