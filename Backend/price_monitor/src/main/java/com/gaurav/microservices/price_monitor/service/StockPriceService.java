@@ -28,7 +28,6 @@ public class StockPriceService {
         List<String> stockIds = jdbcTemplate.queryForList(getStockIdsQuery, String.class);
 
         int totalInserted = 0;
-        // Create Random object for price fluctuation
         Random random = new Random();
 
         for (String stockId : stockIds) {
@@ -54,6 +53,20 @@ public class StockPriceService {
                     // Insert new price data with percentage change
                     String insertQuery = "INSERT INTO stock_price_stream (stock_id, stock_price, percentage_change) VALUES (?, ?, ?)";
                     totalInserted += jdbcTemplate.update(insertQuery, stockId, newPrice, percentageChange);
+
+                    // Check if total rows exceeds 5000 and delete oldest entries if needed
+                    String countQuery = "SELECT COUNT(*) FROM stock_price_stream";
+                    Integer totalRows = jdbcTemplate.queryForObject(countQuery, Integer.class);
+                    if (totalRows != null && totalRows > 5000) {
+                        int rowsToDelete = totalRows - 5000;
+                        String deleteOldestQuery = "DELETE FROM stock_price_stream ORDER BY created_at ASC LIMIT ?";
+                        jdbcTemplate.update(deleteOldestQuery, rowsToDelete);
+                        System.out.println("Cleaned up " + rowsToDelete + " oldest price records to maintain 5000 row limit");
+                    }
+
+                    // Update the price in stock_current_price table
+                    String updateCurrentPriceQuery = "UPDATE stock_current_price SET price = ?, percent_change=? WHERE stock_id = ?";
+                    jdbcTemplate.update(updateCurrentPriceQuery, newPrice, percentageChange, stockId);
                 }
             } catch (Exception e) {
                 System.err.println("Error processing stock_id " + stockId + ": " + e.getMessage());
@@ -77,7 +90,7 @@ public class StockPriceService {
             } catch (Exception e) {
                 System.err.println("Error in scheduled price update: " + e.getMessage());
             }
-        }, 0, 5, TimeUnit.SECONDS);
+        }, 0, 500, TimeUnit.MILLISECONDS);
     }
 
     public void stopScheduledUpdates() {
