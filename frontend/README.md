@@ -1,12 +1,42 @@
-# React + Vite
+# STOX - Stock Management Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+STOX is a modern stock management application built with React and Vite. It provides users with a seamless experience to view stock details, manage their portfolio, and track investments.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Home Page**: Displays a list of stocks with their current prices and percentage changes.
+- **Stock Details**: View detailed information about individual stocks, including price history and trading options.
+- **Portfolio Management**: Track your investments, view portfolio value, and analyze performance with visual charts.
+- **User Account**: View user-specific information such as total investments, profits, and account details.
+- **Authentication**: Login functionality to secure user data.
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Frontend**: React, Vite, Tailwind CSS, Recharts
+- **Backend**: Node.js, Express (assumed)
+- **Database**: MongoDB (or any other database, assumed)
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+
+## Installation
+
+Follow these steps to set up the project locally:
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+
+### Folder Structure
+
+frontend/
+├── public/ # Static assets
+├── src/
+│ ├── components/ # React components (Header, HomePage, StockPage, etc.)
+│ ├── App.jsx # Main app component
+│ ├── main.jsx # Entry point
+│ ├── App.css # Global styles
+│ └── assets/ # Images and other assets
+├── index.html # HTML template
+├── package.json # Project metadata and dependencies
+└── [README.md](http://_vscodecontentref_/1) # Project documentation

@@ -3,38 +3,27 @@ import { Link } from "react-router-dom";
 
 const Header = () => {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "10px",
-        backgroundColor: "#333",
-        color: "white",
-      }}
-    >
+    <header className="bg-neutral-900 p-4 flex justify-between items-center shadow-lg">
+      {/* Logo */}
       <div id="logo" style={{ fontSize: "1.5rem", fontWeight: "bold" }}>
-        MyApp
+        STOX
       </div>
+
+      {/* Navigation */}
       <nav>
-        <ul
-          style={{
-            display: "flex",
-            listStyle: "none",
-            gap: "20px",
-            margin: 0,
-            padding: 0,
-          }}
-        >
+        <ul className="flex gap-6">
           <li>
-            <Link to="/" style={{ color: "white", textDecoration: "none" }}>
+            <Link
+              to="/"
+              className="text-white hover:text-green-400 transition-colors"
+            >
               HomePage
             </Link>
           </li>
           <li>
             <Link
               to="/portfolio"
-              style={{ color: "white", textDecoration: "none" }}
+              className="text-white hover:text-green-400 transition-colors"
             >
               Portfolio
             </Link>
@@ -42,14 +31,15 @@ const Header = () => {
           <li>
             <Link
               to="/user-account"
-              style={{ color: "white", textDecoration: "none" }}
+              className="text-white hover:text-green-400 transition-colors"
             >
               UserAccount
             </Link>
           </li>
         </ul>
       </nav>
-    </div>
+    </header>
   );
 };
+
 export default Header;
