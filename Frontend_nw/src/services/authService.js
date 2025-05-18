@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:9010';
+const API_URL = 'http://localhost:8080/auth_portal';
 
 export const signup = async (userData) => {
   try {

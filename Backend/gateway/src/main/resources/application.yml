@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      routes:
+        - id: stock_ingestion
+          uri: http://localhost:8090
+          predicates:
+            - Path=/stock_ingestion/**
+          filters:
+            - StripPrefix=1
+
+        - id: price_monitor
+          uri: http://localhost:8091
+          predicates:
+            - Path=/price_monitor/**
+          filters:
+            - StripPrefix=1
+
+        - id: OutputMonitor
+          uri: http://localhost:9000
+          predicates:
+            - Path=/output_monitor/**
+          filters:
+            - StripPrefix=1
+
+        - id: SignUp
+          uri: http://localhost:9010
+          predicates:
+            - Path=/auth_portal/**
+          filters:
+            - StripPrefix=1
+
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:5173"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
