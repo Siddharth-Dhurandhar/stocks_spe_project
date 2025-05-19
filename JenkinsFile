@@ -68,6 +68,9 @@ pipeline {
                     for (service in servicePorts.keySet()) {
                         def port = servicePorts[service]
                         def k8sName = service.replaceAll('_', '-').toLowerCase()
+                        def isFrontend = (k8sName == 'frontend-nw')
+                        def serviceType = isFrontend ? 'NodePort' : 'ClusterIP'
+                        def servicePort = isFrontend ? 30080 : 80
                         def deploymentYaml = """\
 apiVersion: apps/v1
 kind: Deployment
@@ -98,9 +101,9 @@ spec:
     app: ${k8sName}
   ports:
   - protocol: TCP
-    port: 80
+    port: ${servicePort}
     targetPort: ${port}
-  type: ClusterIP
+  type: ${serviceType}
 """
                         writeFile file: "${k8sName}-deployment.yaml", text: deploymentYaml
                         sh "kubectl apply -f ${k8sName}-deployment.yaml"
