@@ -1,0 +1,37 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "gv2002/frontend"
+    }
+
+    stages {
+        stage('Clone') {
+            steps {
+                git 'https://github.com/Siddharth-Dhurandhar/stocks_spe_project.git'
+            }
+        }
+
+        stage('Install & Build') {
+            steps {
+                dir('Fronend_nw') {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    dir('Fronend_nw') {
+                        dockerImage = docker.build("${IMAGE_NAME}")
+                    }
+                    docker.withRegistry('', 'dockerhub-credentials-id') {
+                        dockerImage.push()
+                    }
+                }
+            }
+        }
+    }
+}

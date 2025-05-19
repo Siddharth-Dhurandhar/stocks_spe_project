@@ -1,0 +1,116 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-credentials-id') // Replace with your Jenkins credentials ID
+        DOCKER_HUB_REPO = 'gv2002' // Replace with your Docker Hub username
+        KUBECONFIG = credentials('kubeconfig-credentials-id') // Replace with your Kubernetes kubeconfig credentials ID
+    }
+
+    stages {
+        stage('Build Docker Images') {
+            steps {
+                script {
+                    def services = [
+                        './Backend/gateway',
+                        './Backend/OutputMonitor',
+                        './Backend/price_monitor',
+                        './Backend/SignUp',
+                        './Backend/stock_ingestion',
+                        './Frontend_nw'
+                    ]
+
+                    for (service in services) {
+                        dir(service) {
+                            def imageName = "${DOCKER_HUB_REPO}/${service.split('/').last().toLowerCase()}"
+                            sh "docker build -t ${imageName}:latest ."
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                script {
+                    def services = [
+                        './Backend/gateway',
+                        './Backend/OutputMonitor',
+                        './Backend/price_monitor',
+                        './Backend/SignUp',
+                        './Backend/stock_ingestion',
+                        './Frontend_nw'
+                    ]
+
+                    sh "echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin"
+
+                    for (service in services) {
+                        def imageName = "${DOCKER_HUB_REPO}/${service.split('/').last().toLowerCase()}"
+                        sh "docker push ${imageName}:latest"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    def servicePorts = [
+                        'gateway'       : 8095,
+                        'outputmonitor' : 9000,
+                        'price_monitor' : 8091,
+                        'signup'        : 9010,
+                        'stock_ingestion': 8090,
+                        'frontend_nw'   : 5173
+                    ]
+
+                    for (service in servicePorts.keySet()) {
+                        def port = servicePorts[service]
+                        def deploymentYaml = """
+                        apiVersion: apps/v1
+                        kind: Deployment
+                        metadata:
+                          name: ${service}
+                        spec:
+                          replicas: 1
+                          selector:
+                            matchLabels:
+                              app: ${service}
+                          template:
+                            metadata:
+                              labels:
+                                app: ${service}
+                            spec:
+                              containers:
+                              - name: ${service}
+                                image: ${DOCKER_HUB_REPO}/${service}:latest
+                                ports:
+                                - containerPort: ${port}
+                        ---
+                        apiVersion: v1
+                        kind: Service
+                        metadata:
+                          name: ${service}-service
+                        spec:
+                          selector:
+                            app: ${service}
+                          ports:
+                          - protocol: TCP
+                            port: 80
+                            targetPort: ${port}
+                          type: ClusterIP
+                        """
+                        writeFile file: "${service}-deployment.yaml", text: deploymentYaml
+                        sh "kubectl apply -f ${service}-deployment.yaml"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
