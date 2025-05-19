@@ -41,10 +41,11 @@ pipeline {
                         './Frontend_nw'
                     ]
 
-                    sh "echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin"
+                    //sh "echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin"
 
                     for (service in services) {
                         def imageName = "${DOCKER_HUB_REPO}/${service.split('/').last().toLowerCase()}"
+                        sh "echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin"
                         sh "docker push ${imageName}:latest"
                     }
                 }
