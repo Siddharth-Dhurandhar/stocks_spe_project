@@ -3,6 +3,14 @@ spring:
     name: gateway
   cloud:
     gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            exposedHeaders: "*"
+            maxAge: 3600
       routes:
         - id: stock_ingestion
           uri: http://localhost:8090
@@ -31,14 +39,6 @@ spring:
             - Path=/auth_portal/**
           filters:
             - StripPrefix=1
-
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins: "http://localhost:5173"
-            allowedMethods: "*"
-            allowedHeaders: "*"
-            allowCredentials: true
 
 server:
   port: 8085

@@ -25,7 +25,12 @@ pipeline {
                                 sh 'mvn clean package -DskipTests'
                             }
                             def imageName = "${DOCKER_HUB_REPO}/${service.split('/').last().toLowerCase()}"
-                            sh "docker build -t ${imageName}:latest ."
+                            if (service.endsWith('Frontend_nw')) {
+                                def apiUrl = "http://gateway-service"  // Kubernetes service DNS name
+                                sh "docker build -t ${imageName}:latest --build-arg VITE_API_URL=${apiUrl} ."
+                            } else {
+                                sh "docker build -t ${imageName}:latest ."
+                            }
                         }
                     }
                 }
