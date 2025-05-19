@@ -39,3 +39,6 @@ spring:
             allowedMethods: "*"
             allowedHeaders: "*"
             allowCredentials: true
+
+server:
+  port: 8085
