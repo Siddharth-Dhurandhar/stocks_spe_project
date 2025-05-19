@@ -16,12 +16,11 @@ pipeline {
                         './Backend/OutputMonitor',
                         './Backend/price_monitor',
                         './Backend/SignUp',
-                        './Backend/stock_ingestion',
-                        './Frontend_nw'
+                        './Backend/stock_ingestion'
                     ]
 					for (service in services) {
 						dir(service) {
-							sh 'mvn clean package -DskipTests'  // Build the jar first
+                                                                                                                                                                                                                                                                                                                                                                        sh 'mvn clean package -DskipTests'  // Build the jar first
 							def imageName = "${DOCKER_HUB_REPO}/${service.split('/').last().toLowerCase()}"
 							sh "docker build -t ${imageName}:latest ."
 						}
