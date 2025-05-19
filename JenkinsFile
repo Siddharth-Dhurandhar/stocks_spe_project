@@ -67,23 +67,24 @@ pipeline {
 
                     for (service in servicePorts.keySet()) {
                         def port = servicePorts[service]
+                        def k8sName = service.replaceAll('_', '-').toLowerCase()
                         def deploymentYaml = """\
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${service}
+  name: ${k8sName}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ${service}
+      app: ${k8sName}
   template:
     metadata:
       labels:
-        app: ${service}
+        app: ${k8sName}
     spec:
       containers:
-      - name: ${service}
+      - name: ${k8sName}
         image: ${DOCKER_HUB_REPO}/${service}:latest
         ports:
         - containerPort: ${port}
@@ -91,18 +92,18 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${service}-service
+  name: ${k8sName}-service
 spec:
   selector:
-    app: ${service}
+    app: ${k8sName}
   ports:
   - protocol: TCP
     port: 80
     targetPort: ${port}
   type: ClusterIP
 """
-                        writeFile file: "${service}-deployment.yaml", text: deploymentYaml
-                        sh "kubectl apply -f ${service}-deployment.yaml"
+                        writeFile file: "${k8sName}-deployment.yaml", text: deploymentYaml
+                        sh "kubectl apply -f ${k8sName}-deployment.yaml"
                     }
                 }
             }
