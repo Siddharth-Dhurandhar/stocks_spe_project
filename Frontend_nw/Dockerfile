@@ -16,7 +16,7 @@ COPY . .
 ARG VITE_API_URL
 
 # Set the environment variable for the build process - use /api as the URL
-ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_API_URL='/api'
 
 # Build the application
 RUN npm run build
