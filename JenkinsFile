@@ -53,6 +53,17 @@ pipeline {
             }
         }
 
+        stage('Deploy MySQL') {
+            steps {
+                script {
+                    sh 'kubectl apply -f mysql-deployment.yaml'
+                    sh '''
+                        kubectl rollout status deployment/mysql --timeout=120s || exit 1
+                    '''
+                }
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             steps {
                 script {
@@ -120,3 +131,6 @@ spec:
         }
     }
 }
+
+
+
