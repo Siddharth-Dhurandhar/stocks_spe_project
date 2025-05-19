@@ -71,6 +71,7 @@ pipeline {
                         def isFrontend = (k8sName == 'frontend-nw')
                         def serviceType = isFrontend ? 'NodePort' : 'ClusterIP'
                         def servicePort = isFrontend ? 30080 : 80
+                        def targetPort = isFrontend ? 80 : port // <--- fix here
                         def deploymentYaml = """\
 apiVersion: apps/v1
 kind: Deployment
@@ -102,7 +103,7 @@ spec:
   ports:
   - protocol: TCP
     port: ${servicePort}
-    targetPort: ${port}
+    targetPort: ${targetPort}
   type: ${serviceType}
 """
                         writeFile file: "${k8sName}-deployment.yaml", text: deploymentYaml
