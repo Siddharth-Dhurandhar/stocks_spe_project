@@ -43,11 +43,13 @@ pipeline {
                     ]
 
                     sh "echo ${DOCKER_HUB_CREDENTIALS_PSW} | docker login -u ${DOCKER_HUB_CREDENTIALS_USR} --password-stdin"
-
-                    for (service in services) {
-                        def imageName = "${DOCKER_HUB_REPO}/${service.split('/').last().toLowerCase()}"
-                        sh "docker push ${imageName}:latest"
-                    }
+					for (service in services) {
+						dir(service) {
+							sh 'mvn clean package -DskipTests'  // Build the jar first
+							def imageName = "${DOCKER_HUB_REPO}/${service.split('/').last().toLowerCase()}"
+							sh "docker build -t ${imageName}:latest ."
+						}
+					}
                 }
             }
         }
