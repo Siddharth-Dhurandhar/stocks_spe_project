@@ -26,7 +26,7 @@ pipeline {
                             }
                             def imageName = "${DOCKER_HUB_REPO}/${service.split('/').last().toLowerCase()}"
                             if (service.endsWith('Frontend_nw')) {
-                                def apiUrl = "/api"  // Just the path prefix, nginx will handle the proxy
+                                def apiUrl = "http://gateway-service"  // Kubernetes service DNS name
                                 sh "docker build -t ${imageName}:latest --build-arg VITE_API_URL=${apiUrl} ."
                             } else {
                                 sh "docker build -t ${imageName}:latest ."
