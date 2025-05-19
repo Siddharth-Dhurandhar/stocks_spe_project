@@ -15,8 +15,8 @@ COPY . .
 # Use ARG to accept the API URL during build
 ARG VITE_API_URL
 
-# Set the environment variable for the build process
-ENV VITE_API_URL=${VITE_API_URL}
+# Set the environment variable for the build process - use /api as the URL
+ENV VITE_API_URL=/api
 
 # Build the application
 RUN npm run build
@@ -26,6 +26,9 @@ FROM nginx:alpine
 
 # Copy the built files to the Nginx HTML directory
 COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose the port the app runs on
 EXPOSE 80
