@@ -16,14 +16,17 @@ pipeline {
                         './Backend/OutputMonitor',
                         './Backend/price_monitor',
                         './Backend/SignUp',
-                        './Backend/stock_ingestion'
+                        './Backend/stock_ingestion',
+                        './Frontend_nw'
                     ]
 					for (service in services) {
-						dir(service) {
-                                                                                                                                                                                                                                                                                                                                                                        sh 'mvn clean package -DskipTests'  // Build the jar first
-							def imageName = "${DOCKER_HUB_REPO}/${service.split('/').last().toLowerCase()}"
-							sh "docker build -t ${imageName}:latest ."
-						}
+                        dir(service) {
+                            if (!service.endsWith('Frontend_nw')) {
+                                sh 'mvn clean package -DskipTests'
+                            }
+                            def imageName = "${DOCKER_HUB_REPO}/${service.split('/').last().toLowerCase()}"
+                            sh "docker build -t ${imageName}:latest ."
+                        }
 					}
                 }
             }
