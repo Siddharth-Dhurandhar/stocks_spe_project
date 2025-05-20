@@ -12,12 +12,6 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
-# Use ARG to accept the API URL during build
-ARG VITE_API_URL
-
-# Set the environment variable for the build process - use /api as the URL
-ENV VITE_API_URL=${VITE_API_URL}
-
 # Build the application
 RUN npm run build
 
