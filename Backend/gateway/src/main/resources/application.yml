@@ -40,5 +40,12 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: user_activity
+          uri: http://localhost:9020
+          predicates:
+            - Path=/user_activity/**
+          filters:
+            - StripPrefix=1
+
 server:
   port: 8085

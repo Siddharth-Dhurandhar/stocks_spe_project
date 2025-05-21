@@ -1,4 +1,4 @@
-package com.gaurav.microservices.signup.entity;
+package com.gaurav.microservices.user_activity.entity;
 
 import jakarta.persistence.*;
 

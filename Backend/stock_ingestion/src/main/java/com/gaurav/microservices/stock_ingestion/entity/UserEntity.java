@@ -1,4 +1,4 @@
-package com.gaurav.microservices.signup.entity;
+package com.gaurav.microservices.stock_ingestion.entity;
 
 import jakarta.persistence.*;
 
