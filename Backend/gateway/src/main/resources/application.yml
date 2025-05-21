@@ -34,7 +34,7 @@ spring:
             - StripPrefix=1
 
         - id: SignUp
-          uri: http://signup-service
+          uri: http://localhost:9010
           predicates:
             - Path=/auth_portal/**
           filters:
