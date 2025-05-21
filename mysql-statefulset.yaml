@@ -23,6 +23,12 @@ spec:
           value: "gaurav"
         - name: MYSQL_DATABASE
           value: "stockdb"
+        - name: MYSQL_ROOT_HOST
+          value: "%" # Allow root connections from any host
+        args:
+        - --default-authentication-plugin=mysql_native_password
+        - --character-set-server=utf8mb4
+        - --collation-server=utf8mb4_unicode_ci
         volumeMounts:
         - name: mysql-persistent-storage
           mountPath: /var/lib/mysql
