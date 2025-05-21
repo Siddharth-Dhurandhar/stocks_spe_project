@@ -92,7 +92,7 @@ data:
             steps {
                 script {
                     def servicePorts = [
-                        'gateway'        : 8095,
+                        'gateway'        : 8085,
                         'outputmonitor'  : 9000,
                         'price_monitor'  : 8091,
                         'signup'         : 9010,
@@ -104,8 +104,8 @@ data:
                         def port = servicePorts[service]
                         def k8sName = service.replaceAll('_', '-').toLowerCase()
                         def isFrontend = (k8sName == 'frontend-nw')
-                        def serviceType = isFrontend ? 'NodePort' : 'ClusterIP'
-                        def servicePort = isFrontend ? 30080 : 80
+                        def serviceType = (k8sName == 'frontend-nw' || k8sName == 'gateway') ? 'NodePort' : 'ClusterIP'
+                        def servicePort = isFrontend ? 30080 : (k8sName == 'gateway' ? 30081 : 80)
                         def targetPort = isFrontend ? 80 : port
                         
                         // Get the fixed IP directly from kubectl
