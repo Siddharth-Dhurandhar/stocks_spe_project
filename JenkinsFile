@@ -60,10 +60,30 @@ pipeline {
         stage('Deploy MySQL') {
             steps {
                 script {
-                    sh 'kubectl apply -f mysql-deployment.yaml'
-                    sh '''
-                        kubectl rollout status deployment/mysql --timeout=120s || exit 1
-                    '''
+                    sh 'kubectl apply -f mysql-statefulset.yaml'
+                    sh 'kubectl rollout status statefulset/mysql --timeout=120s || exit 1'
+                }
+            }
+        }
+
+        stage('Deploy Fixed IP ConfigMap') {
+            steps {
+                script {
+                    writeFile file: "fixed-ips.yaml", text: '''
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-ips
+data:
+  gateway-ip: "10.100.0.10"
+  outputmonitor-ip: "10.100.0.11"
+  price-monitor-ip: "10.100.0.12"
+  signup-ip: "10.100.0.13"
+  stock-ingestion-ip: "10.100.0.14"
+  frontend-ip: "10.100.0.15"
+  mysql-ip: "10.100.0.16"
+'''
+                    sh "kubectl apply -f fixed-ips.yaml"
                 }
             }
         }
@@ -80,19 +100,29 @@ pipeline {
                         'frontend_nw'    : 5173
                     ]
 
+                    // Get the ConfigMap for IP addresses
+                    sh "kubectl get configmap service-ips -o json > service-ips.json"
+                    def serviceIps = readJSON file: "service-ips.json"
+                    
                     for (service in servicePorts.keySet()) {
                         def port = servicePorts[service]
                         def k8sName = service.replaceAll('_', '-').toLowerCase()
                         def isFrontend = (k8sName == 'frontend-nw')
                         def serviceType = isFrontend ? 'NodePort' : 'ClusterIP'
                         def servicePort = isFrontend ? 30080 : 80
-                        def targetPort = isFrontend ? 80 : port // <--- fix here
-                        def deploymentYaml = """\
+                        def targetPort = isFrontend ? 80 : port
+                        
+                        // Determine the fixed IP based on service name
+                        def ipKey = k8sName.replaceAll('-nw', '') + '-ip'
+                        def fixedIp = serviceIps.data[ipKey]
+                        
+                        def statefulSetYaml = """\
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: ${k8sName}
 spec:
+  serviceName: "${k8sName}-service"
   replicas: 1
   selector:
     matchLabels:
@@ -120,9 +150,10 @@ spec:
     port: ${servicePort}
     targetPort: ${targetPort}
   type: ${serviceType}
+  clusterIP: ${fixedIp}
 """
-                        writeFile file: "${k8sName}-deployment.yaml", text: deploymentYaml
-                        sh "kubectl apply -f ${k8sName}-deployment.yaml"
+                        writeFile file: "${k8sName}-statefulset.yaml", text: statefulSetYaml
+                        sh "kubectl apply -f ${k8sName}-statefulset.yaml"
                     }
                 }
             }

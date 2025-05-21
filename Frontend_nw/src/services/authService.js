@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8085/auth_portal';
+const API_URL = 'http://localhost:8085/auth_portal';
 
 export const signup = async (userData) => {
   try {
