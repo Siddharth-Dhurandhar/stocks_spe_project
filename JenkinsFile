@@ -99,10 +99,6 @@ data:
                         'stock_ingestion': 8090,
                         'frontend_nw'    : 5173
                     ]
-
-                    // Get the ConfigMap for IP addresses
-                    sh "kubectl get configmap service-ips -o json > service-ips.json"
-                    def serviceIps = readJSON file: "service-ips.json"
                     
                     for (service in servicePorts.keySet()) {
                         def port = servicePorts[service]
@@ -112,9 +108,12 @@ data:
                         def servicePort = isFrontend ? 30080 : 80
                         def targetPort = isFrontend ? 80 : port
                         
-                        // Determine the fixed IP based on service name
+                        // Get the fixed IP directly from kubectl
                         def ipKey = k8sName.replaceAll('-nw', '') + '-ip'
-                        def fixedIp = serviceIps.data[ipKey]
+                        def fixedIp = sh(
+                            script: "kubectl get configmap service-ips -o jsonpath='{.data.${ipKey}}'", 
+                            returnStdout: true
+                        ).trim()
                         
                         def statefulSetYaml = """\
 apiVersion: apps/v1
