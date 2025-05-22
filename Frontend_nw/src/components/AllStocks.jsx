@@ -170,7 +170,7 @@
 
 import React, { useEffect, useState } from "react";
 
-const AllStocks = () => {
+const HomePage = () => {
   const [stocks, setStocks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -184,7 +184,6 @@ const AllStocks = () => {
           throw new Error(`Failed to fetch stock data: ${response.status}`);
         }
         const data = await response.json();
-        console.log("Fetched data:", data); // Log fetched data
         setStocks(data);
         setIsLoading(false);
       } catch (error) {
@@ -198,54 +197,42 @@ const AllStocks = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 to-black text-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-500 mx-auto mb-6"></div>
-          <p className="text-lg font-semibold text-gray-400">
-            Loading stocks...
-          </p>
-        </div>
+      <div>
+        <p>Loading stocks...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-b from-gray-900 to-black min-h-screen text-gray-100">
-      <main className="max-w-7xl mx-auto px-6 py-16">
-        <h1 className="text-4xl font-extrabold text-green-400 mb-12 text-center">
-          Stocks List
-        </h1>
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div>
+      <main>
+        <h1>Stocks List</h1>
+        <ul style={{ listStyle: "none", padding: 0 }}>
           {stocks.map((stock) => (
             <li
               key={stock.stockId}
-              className="bg-black bg-opacity-70 rounded-lg shadow-lg p-6 border border-green-700 hover:shadow-xl transition-shadow duration-300"
+              style={{
+                border: "1px solid black",
+                padding: "10px",
+                marginBottom: "10px",
+              }}
             >
-              <h2 className="text-2xl font-bold text-green-300 mb-2">
-                {stock.stockName}{" "}
-                <span className="text-green-500 text-sm">
-                  ({stock.stockSymbol})
-                </span>
+              <h2>
+                {stock.stockName} ({stock.stockSymbol})
               </h2>
-              <p className="text-lg text-green-200">
-                Exchange:{" "}
-                <span className="font-semibold">{stock.stockExchange}</span>
+              <p>
+                Exchange: <strong>{stock.stockExchange}</strong>
               </p>
-              <p className="text-lg text-green-200">
-                Sector:{" "}
-                <span className="font-semibold">{stock.stockSector}</span>
+              <p>
+                Sector: <strong>{stock.stockSector}</strong>
               </p>
-              <p className="text-lg text-green-200">
-                Initial Price:{" "}
-                <span className="font-semibold">${stock.initialPrice}</span>
+              <p>
+                Initial Price: <strong>${stock.initialPrice}</strong>
               </p>
-              <p className="text-lg text-green-200">
-                Volatility:{" "}
-                <span className="font-semibold">{stock.volatility}%</span>
+              <p>
+                Volatility: <strong>{stock.volatility}%</strong>
               </p>
-              <p className="text-sm text-gray-400 mt-4">
-                {stock.stockDescription}
-              </p>
+              <p>{stock.stockDescription}</p>
             </li>
           ))}
         </ul>
@@ -254,4 +241,4 @@ const AllStocks = () => {
   );
 };
 
-export default AllStocks;
+export default HomePage;
