@@ -145,4 +145,15 @@ public class OutputService {
 
         return portfolio;
     }
+
+    public Map<String, Object> getUserDetails(Long userId) {
+        try {
+            String query = "SELECT * FROM user_master WHERE user_id = ?";
+            List<Map<String, Object>> results = jdbcTemplate.queryForList(query, userId);
+
+            return results.isEmpty() ? null : results.get(0);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve details for user: " + userId, e);
+        }
+    }
 }

@@ -1,10 +1,3 @@
-// const Temp = () => {
-//   return <h1>Hello World</h1>;
-// };
-
-// export default Temp;
-
-// Example of accessing the username
 import React from "react";
 import { useUser } from "../context/UserContext";
 

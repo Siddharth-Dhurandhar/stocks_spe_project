@@ -7,6 +7,7 @@ import com.gaurav.microservices.outputmonitor.dto.UserRequestDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 import java.util.List;
 
@@ -57,6 +58,23 @@ public class OutputController {
         }
         List<PortfolioDTO> portfolio = outputService.portfolioCalculate(userRequest.getUserId());
         return ResponseEntity.ok(portfolio);
+    }
+
+    @PostMapping("/getUserDetails")
+    public ResponseEntity<?> getUserDetails(@RequestBody UserRequestDTO userRequest) {
+        if (userRequest.getUserId() == null) {
+            return ResponseEntity.badRequest().body("Error: userId is required");
+        }
+        try {
+            Map<String, Object> userDetails = outputService.getUserDetails(userRequest.getUserId());
+            if (userDetails != null && !userDetails.isEmpty()) {
+                return ResponseEntity.ok(userDetails);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error retrieving user details: " + e.getMessage());
+        }
     }
 
 
