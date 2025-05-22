@@ -7,84 +7,127 @@ const Header = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Clear the user data from context
     setUser(null);
-
-    // Redirect to auth page
     navigate("/auth");
   };
 
-  const headerStyle = {
-    backgroundColor: "#2c3e50",
-    padding: "1rem",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-  };
-
-  const logoStyle = {
-    fontSize: "1.5rem",
-    fontWeight: "bold"
-  };
-
-  const logoLinkStyle = {
-    color: "#ecf0f1",
-    textDecoration: "none"
-  };
-
-  const navStyle = {
-    display: "flex"
-  };
-
-  const navListStyle = {
-    display: "flex",
-    listStyleType: "none",
-    margin: 0,
-    padding: 0,
-    gap: "1.5rem"
-  };
-
-  const navLinkStyle = {
-    color: "#ecf0f1",
-    textDecoration: "none",
-    fontWeight: "500",
-    padding: "0.5rem 0",
-    position: "relative"
-  };
-
-  const logoutButtonStyle = {
-    backgroundColor: "#e74c3c",
-    color: "white",
-    border: "none",
-    padding: "0.5rem 1rem",
-    borderRadius: "4px",
-    cursor: "pointer",
-    fontWeight: "bold"
-  };
-
   return (
-    <header style={headerStyle}>
-      <div style={logoStyle}>
-        <Link to="/home" style={logoLinkStyle}>StockTracker</Link>
+    <header className="glass-panel" style={{
+      margin: "1rem",
+      borderRadius: "12px",
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "0.75rem 1.5rem",
+    }}>
+      <div className="logo" style={{
+        fontSize: "1.5rem",
+        fontWeight: "bold",
+        letterSpacing: "-0.05em"
+      }}>
+        <Link to="/home" style={{
+          color: "var(--text-primary)",
+          textDecoration: "none",
+          position: "relative",
+          display: "flex",
+          alignItems: "center"
+        }}>
+          <span style={{
+            background: "linear-gradient(90deg, #22c55e, #3b82f6)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent"
+          }}>STOX</span>
+          <span style={{
+            width: "8px",
+            height: "8px",
+            background: "var(--accent-green)",
+            borderRadius: "50%",
+            marginLeft: "5px",
+            boxShadow: "0 0 8px var(--accent-green)"
+          }}></span>
+        </Link>
       </div>
-      <nav style={navStyle}>
-        <ul style={navListStyle}>
+      
+      <nav>
+        <ul style={{
+          display: "flex",
+          gap: "2rem",
+          alignItems: "center",
+          listStyleType: "none",
+          margin: 0,
+          padding: 0
+        }}>
           <li>
-            <Link to="/home" style={navLinkStyle}>Home</Link>
+            <Link to="/home" className="nav-link" style={{
+              color: "var(--text-secondary)",
+              textDecoration: "none",
+              padding: "0.5rem 0",
+              fontWeight: "500",
+              position: "relative",
+              transition: "all 0.3s ease"
+            }}>
+              Dashboard
+            </Link>
           </li>
           <li>
-            <Link to="/portfolio" style={navLinkStyle}>Portfolio</Link>
+            <Link to="/portfolio" className="nav-link" style={{
+              color: "var(--text-secondary)",
+              textDecoration: "none",
+              padding: "0.5rem 0",
+              fontWeight: "500",
+              position: "relative",
+              transition: "all 0.3s ease"
+            }}>
+              Portfolio
+            </Link>
           </li>
           <li>
-            <Link to="/all" style={navLinkStyle}>All Stocks</Link>
+            <Link to="/all" className="nav-link" style={{
+              color: "var(--text-secondary)",
+              textDecoration: "none",
+              padding: "0.5rem 0",
+              fontWeight: "500",
+              position: "relative",
+              transition: "all 0.3s ease"
+            }}>
+              Markets
+            </Link>
           </li>
           <li>
-            <Link to="/user-account" style={navLinkStyle}>My Account</Link>
+            <Link to="/user-account" style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              color: "var(--text-secondary)",
+              textDecoration: "none",
+              padding: "0.5rem 0.75rem",
+              fontWeight: "500",
+              background: "rgba(255,255,255,0.05)",
+              borderRadius: "8px",
+              transition: "all 0.3s ease"
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              Account
+            </Link>
           </li>
           <li>
-            <button style={logoutButtonStyle} onClick={handleLogout}>
-              Logout
+            <button 
+              onClick={handleLogout}
+              style={{
+                background: "rgba(239, 68, 68, 0.2)",
+                border: "1px solid rgba(239, 68, 68, 0.4)",
+                color: "#ef4444",
+                padding: "0.5rem 1rem",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: "600",
+                transition: "all 0.3s ease"
+              }}
+            >
+              Disconnect
             </button>
           </li>
         </ul>
