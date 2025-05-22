@@ -1,5 +1,6 @@
 package com.gaurav.microservices.outputmonitor.controller;
 
+import com.gaurav.microservices.outputmonitor.dto.PortfolioDTO;
 import com.gaurav.microservices.outputmonitor.entity.StockMasterEntity;
 import com.gaurav.microservices.outputmonitor.service.OutputService;
 import com.gaurav.microservices.outputmonitor.dto.UserRequestDTO;
@@ -39,6 +40,25 @@ public class OutputController {
             return ResponseEntity.badRequest().body("Error retrieving balance: " + e.getMessage());
         }
     }
+    @PostMapping("/getPNLperStock")
+    public float getPNLperStock(@RequestBody UserRequestDTO userRequest) {
+        System.out.println(userRequest.getUserId() );
+        return outputService.calculatePNLForStock(userRequest.getUserId(), userRequest.getStockId());
+
+    }
+    @PostMapping("/getTotalPNL")
+    public float getTotalPNL(@RequestBody UserRequestDTO userRequest) {
+        return outputService.calculateTotalPNL(userRequest.getUserId());
+    }
+    @PostMapping("/portfolio")
+    public ResponseEntity<?> getPortfolio(@RequestBody UserRequestDTO userRequest) {
+        if (userRequest.getUserId() == null) {
+            return ResponseEntity.badRequest().body("Error: userId is required");
+        }
+        List<PortfolioDTO> portfolio = outputService.portfolioCalculate(userRequest.getUserId());
+        return ResponseEntity.ok(portfolio);
+    }
+
 
 
 }

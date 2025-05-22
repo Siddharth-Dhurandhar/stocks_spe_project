@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/p_monitor")
+@RequestMapping
 public class PriceMonitorController {
     private final StockPriceService stockPriceService;
 

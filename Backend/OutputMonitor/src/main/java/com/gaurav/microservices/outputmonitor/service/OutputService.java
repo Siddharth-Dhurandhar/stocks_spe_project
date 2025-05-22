@@ -1,12 +1,16 @@
 package com.gaurav.microservices.outputmonitor.service;
 
+import com.gaurav.microservices.outputmonitor.dto.PortfolioDTO;
 import com.gaurav.microservices.outputmonitor.entity.StockMasterEntity;
+import com.gaurav.microservices.outputmonitor.dto.ProfitStatus;
 import com.gaurav.microservices.outputmonitor.repository.StockMasterRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class OutputService {
@@ -33,5 +37,112 @@ public class OutputService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to retrieve balance for user: " + userId, e);
         }
+    }
+
+    public float calculatePNLForStock(Long userId, Long stockId) {
+            // Calculate total cost and quantity of bought shares
+            String costQuery = "SELECT COALESCE(SUM(amount), 0) as total_cost, COALESCE(SUM(quantity), 0) as total_quantity " +
+                    "FROM user_transactions " +
+                    "WHERE user_id = ? AND stock_id = ? AND transaction_type = 'BUY'";
+            Map<String, Object> costResult = jdbcTemplate.queryForMap(costQuery, userId, stockId);
+
+            float totalCost = ((Number) costResult.get("total_cost")).floatValue();
+            int totalBoughtShares = ((Number) costResult.get("total_quantity")).intValue();
+            float avgCostPerShare = totalBoughtShares > 0 ? totalCost / totalBoughtShares : 0;
+
+            // Calculate total proceeds and quantity of sold shares
+            String sellQuery = "SELECT COALESCE(SUM(amount), 0) as total_proceeds, COALESCE(SUM(quantity), 0) as total_sold " +
+                    "FROM user_transactions " +
+                    "WHERE user_id = ? AND stock_id = ? AND transaction_type = 'SELL'";
+            Map<String, Object> sellResult = jdbcTemplate.queryForMap(sellQuery, userId, stockId);
+
+            float totalProceeds = ((Number) sellResult.get("total_proceeds")).floatValue();
+            int totalSoldShares = ((Number) sellResult.get("total_sold")).intValue();
+
+            // Calculate cost basis of sold shares
+            float costBasisOfSoldShares = totalSoldShares * avgCostPerShare;
+
+            // Calculate realized PNL (profit/loss)
+            float realizedPNL = totalProceeds - costBasisOfSoldShares;
+
+            return realizedPNL;
+
+    }
+    public float calculateTotalPNL(Long userId) {
+        // Get all distinct stock IDs for the user's transactions
+        String stockQuery = "SELECT DISTINCT stock_id FROM user_transactions " +
+                "WHERE user_id = ? AND stock_id IS NOT NULL";
+        List<Long> stockIds = jdbcTemplate.queryForList(stockQuery, Long.class, userId);
+
+        // Calculate PNL for each stock and sum them
+        float totalPNL = 0.0f;
+        for (Long stockId : stockIds) {
+            totalPNL += calculatePNLForStock(userId, stockId);
+        }
+
+        return totalPNL;
+    }
+
+    public List<PortfolioDTO> portfolioCalculate(Long userId) {
+        List<PortfolioDTO> portfolio = new ArrayList<>();
+
+        try {
+            // Get all distinct stock IDs for the user's transactions
+            String stockQuery = "SELECT DISTINCT stock_id FROM user_transactions " +
+                    "WHERE user_id = ? AND stock_id IS NOT NULL";
+            List<Long> stockIds = jdbcTemplate.queryForList(stockQuery, Long.class, userId);
+
+            for (Long stockId : stockIds) {
+                // 1. Calculate totalQuantity (BUY - SELL)
+                String quantityQuery = "SELECT " +
+                        "(SELECT COALESCE(SUM(quantity), 0) FROM user_transactions WHERE user_id = ? AND stock_id = ? AND transaction_type = 'BUY') - " +
+                        "(SELECT COALESCE(SUM(quantity), 0) FROM user_transactions WHERE user_id = ? AND stock_id = ? AND transaction_type = 'SELL') " +
+                        "AS total_quantity";
+                Integer totalQuantity = jdbcTemplate.queryForObject(quantityQuery, Integer.class, userId, stockId, userId, stockId);
+
+                // Skip if user doesn't hold any shares of this stock
+                if (totalQuantity == null || totalQuantity <= 0) {
+                    continue;
+                }
+
+                PortfolioDTO stockPortfolio = new PortfolioDTO();
+                stockPortfolio.setUserId(userId);
+                stockPortfolio.setStockId(stockId);
+                stockPortfolio.setTotalQuantity(totalQuantity);
+
+                // 2. Calculate PNL for this stock
+                float pnl = calculatePNLForStock(userId, stockId);
+                stockPortfolio.setPNL(pnl);
+
+                // 3. Get stock name from stock_master
+                String stockNameQuery = "SELECT stock_name FROM stock_master WHERE stock_id = ?";
+                String stockName = jdbcTemplate.queryForObject(stockNameQuery, String.class, stockId);
+                stockPortfolio.setStockName(stockName);
+
+                // 4. Set status based on PNL
+                if (pnl > 0) {
+                    stockPortfolio.setStatus(ProfitStatus.PROFIT);
+                } else if (pnl < 0) {
+                    stockPortfolio.setStatus(ProfitStatus.LOSS);
+                } else {
+                    stockPortfolio.setStatus(ProfitStatus.NEUTRAL);
+                }
+
+                // 5. Get current price
+                String priceQuery = "SELECT price FROM stock_current_price WHERE stock_id = ?";
+                Float currentPrice = jdbcTemplate.queryForObject(priceQuery, Float.class, stockId);
+                stockPortfolio.setCurrentPrice(currentPrice);
+
+                // 6. Calculate invested amount (quantity * currentPrice)
+                float investedAmount = totalQuantity * currentPrice;
+                stockPortfolio.setInvestedAmount(investedAmount);
+
+                portfolio.add(stockPortfolio);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error calculating portfolio for user: " + userId, e);
+        }
+
+        return portfolio;
     }
 }
