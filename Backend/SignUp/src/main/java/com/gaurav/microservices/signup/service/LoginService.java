@@ -11,14 +11,17 @@ public class LoginService {
     @Autowired
     private UserRepository userRepository;
 
-    public boolean authenticate(String username, String password) {
+    public Long authenticate(String username, String password) {
         // Sanitize input to prevent SQL injection
         String sanitizedUsername = sanitize(username);
 
         // Find user by username and check password
         UserEntity user = userRepository.findByUsername(sanitizedUsername);
 
-        return user != null && user.getPassword().equals(password);
+        if (user != null && user.getPassword().equals(password)) {
+            return user.getId();
+        }
+        return null;
     }
 
     // Basic sanitization to prevent SQL injection

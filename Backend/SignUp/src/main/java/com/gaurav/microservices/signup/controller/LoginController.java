@@ -17,10 +17,10 @@ public class LoginController {
     @PostMapping
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
         try {
-            boolean isAuthenticated = loginService.authenticate(loginRequest.getUsername(), loginRequest.getPassword());
+            Long userId = loginService.authenticate(loginRequest.getUsername(), loginRequest.getPassword());
 
-            if (isAuthenticated) {
-                return new ResponseEntity<>("Login successful", HttpStatus.OK);
+            if (userId != null) {
+                return new ResponseEntity<>(userId, HttpStatus.OK);
             } else {
                 return new ResponseEntity<>("Invalid username or password", HttpStatus.UNAUTHORIZED);
             }
