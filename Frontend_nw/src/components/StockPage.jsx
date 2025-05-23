@@ -33,7 +33,7 @@ const StockPage = () => {
         setIsLoading(true);
         // In a real app, replace this with your actual API endpoint
         const response = await fetch(
-          `http://localhost:8085/output_monitor/retrieve/stockDetails/${id}`
+          `http://gateway-service/output_monitor/retrieve/stockDetails/${id}`
         );
         
         if (!response.ok) {
@@ -106,8 +106,8 @@ const StockPage = () => {
     
     try {
       const endpoint = transactionType === "buy" 
-        ? "http://localhost:8085/output_monitor/portfolio/buy" 
-        : "http://localhost:8085/output_monitor/portfolio/sell";
+        ? "http://gateway-service/output_monitor/portfolio/buy" 
+        : "http://gateway-service/output_monitor/portfolio/sell";
       
       const response = await fetch(endpoint, {
         method: "POST",

@@ -13,7 +13,7 @@ const UserAccount = () => {
         setLoading(true);
         
         const response = await fetch(
-          "http://localhost:8085/output_monitor/retrieve/getUserDetails",
+          "http://gateway-service/output_monitor/retrieve/getUserDetails",
           {
             method: "POST",
             headers: {
