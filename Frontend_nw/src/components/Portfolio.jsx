@@ -36,7 +36,7 @@ const Portfolio = () => {
     const fetchPortfolioData = async () => {
       try {
         const response = await fetch(
-          "http://gateway-service/output_monitor/retrieve/portfolio",
+          "output_monitor/retrieve/portfolio",
           {
             method: "POST",
             headers: {

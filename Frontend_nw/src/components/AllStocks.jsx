@@ -10,7 +10,7 @@ const AllStocks = () => {
     const fetchStockData = async () => {
       try {
         const response = await fetch(
-          "http://gateway-service/output_monitor/retrieve/allStockDetails"
+          "/output_monitor/retrieve/allStockDetails"
         );
         if (!response.ok) {
           throw new Error(`Failed to fetch stock data: ${response.status}`);
