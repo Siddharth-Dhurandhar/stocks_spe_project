@@ -70,7 +70,7 @@ const HomePage = () => {
       try {
         // Fetch top performing stocks
         const stocksResponse = await fetch(
-          "http://localhost:8085/output_monitor/retrieve/allStockDetails"
+          "/output_monitor/retrieve/allStockDetails"
         );
         
         if (!stocksResponse.ok) {
@@ -95,7 +95,7 @@ const HomePage = () => {
         if (user) {
           try {
             const portfolioResponse = await fetch(
-              "http://localhost:8085/output_monitor/retrieve/portfolio",
+              "/output_monitor/retrieve/portfolio",
               {
                 method: "POST",
                 headers: {

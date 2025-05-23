@@ -39,7 +39,7 @@ const StockPage = () => {
         // );
 
         const response = await fetch(
-          "http://localhost:8085/output_monitor/retrieve/stockDetail",
+          "/output_monitor/retrieve/stockDetail",
           {
             method: "POST",
             headers: {
@@ -107,7 +107,7 @@ const StockPage = () => {
     const fetchLatestPrice = async () => {
       try {
         const response = await fetch(
-          "http://localhost:8085/output_monitor/retrieve/stockPriceHistory",
+          "/output_monitor/retrieve/stockPriceHistory",
           {
             method: "POST",
             headers: {
@@ -188,7 +188,7 @@ const StockPage = () => {
 
     try {
       const endpoint =
-        "http://localhost:8085/user_activity/transactions/buysell";
+        "/user_activity/transactions/buysell";
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {

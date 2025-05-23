@@ -212,7 +212,7 @@ const UserDepositWithdraw = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:8085/output_monitor/retrieve/balance`,
+        `/output_monitor/retrieve/balance`,
         {
           method: "POST",
           headers: {
@@ -281,7 +281,7 @@ const UserDepositWithdraw = () => {
     setSuccessMessage("");
 
     try {
-      const endpoint = `http://localhost:8085/user_activity/transactions/${transactionType}`;
+      const endpoint = `/user_activity/transactions/${transactionType}`;
 
       console.log(user);
       const response = await fetch(endpoint, {
