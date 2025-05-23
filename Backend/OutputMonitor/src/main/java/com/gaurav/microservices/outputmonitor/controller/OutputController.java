@@ -2,6 +2,7 @@ package com.gaurav.microservices.outputmonitor.controller;
 
 import com.gaurav.microservices.outputmonitor.dto.PortfolioDTO;
 import com.gaurav.microservices.outputmonitor.entity.StockMasterEntity;
+import com.gaurav.microservices.outputmonitor.entity.StockPriceStreamEntity;
 import com.gaurav.microservices.outputmonitor.service.OutputService;
 import com.gaurav.microservices.outputmonitor.dto.UserRequestDTO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,37 @@ public class OutputController {
         List<StockMasterEntity> stocks = outputService.getAllStocks();
         return ResponseEntity.ok(stocks);
     }
+
+    @PostMapping("/stockDetail")
+    public ResponseEntity<?> getStockDetail(@RequestBody UserRequestDTO userRequest) {
+        if (userRequest.getStockId() == null) {
+            return ResponseEntity.badRequest().body("Error: stockId is required");
+        }
+        try {
+            StockMasterEntity stockDetail = outputService.getStockDetail(userRequest.getStockId());
+            if (stockDetail != null) {
+                return ResponseEntity.ok(stockDetail);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error retrieving stock details: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/stockPriceHistory")
+    public ResponseEntity<?> getStockPriceHistory(@RequestBody UserRequestDTO userRequest) {
+        if (userRequest.getStockId() == null) {
+            return ResponseEntity.badRequest().body("Error: stockId is required");
+        }
+        try {
+            List<StockPriceStreamEntity> priceHistory = outputService.getStockPriceHistory(userRequest.getStockId());
+            return ResponseEntity.ok(priceHistory);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error retrieving stock price history: " + e.getMessage());
+        }
+    }
+
 
     @PostMapping("/balance")
     public ResponseEntity<?> getBalance(@RequestBody UserRequestDTO userRequest) {

@@ -3,8 +3,11 @@ package com.gaurav.microservices.outputmonitor.service;
 import com.gaurav.microservices.outputmonitor.dto.PortfolioDTO;
 import com.gaurav.microservices.outputmonitor.entity.StockMasterEntity;
 import com.gaurav.microservices.outputmonitor.dto.ProfitStatus;
+import com.gaurav.microservices.outputmonitor.entity.StockPriceStreamEntity;
 import com.gaurav.microservices.outputmonitor.repository.StockMasterRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -154,6 +157,43 @@ public class OutputService {
             return results.isEmpty() ? null : results.get(0);
         } catch (Exception e) {
             throw new RuntimeException("Failed to retrieve details for user: " + userId, e);
+        }
+    }
+
+    public StockMasterEntity getStockDetail(Long stockId) {
+        try {
+            String query = "SELECT * FROM stock_master WHERE stock_id = ?";
+            return jdbcTemplate.queryForObject(query,
+                    new BeanPropertyRowMapper<>(StockMasterEntity.class),
+                    stockId);
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve stock details for stockId: " + stockId, e);
+        }
+    }
+
+    public List<StockPriceStreamEntity> getStockPriceHistory(Long stockId) {
+        try {
+            String query = "SELECT * FROM stock_price_stream WHERE stock_id = ? ORDER BY created_at ASC";
+            return jdbcTemplate.query(query,
+                    (rs, rowNum) -> {
+                        StockPriceStreamEntity entity = new StockPriceStreamEntity();
+                        entity.setStreamPriceIndex(rs.getLong("stream_price_index"));
+
+                        StockMasterEntity stockEntity = new StockMasterEntity();
+                        stockEntity.setStockId(rs.getLong("stock_id"));
+                        entity.setStock(stockEntity);
+
+                        entity.setStockPrice(rs.getFloat("stock_price"));
+                        entity.setPercentageChange(rs.getObject("percentage_change") != null ? rs.getFloat("percentage_change") : null);
+                        entity.setCreated_at(rs.getTimestamp("created_at").toLocalDateTime());
+
+                        return entity;
+                    },
+                    stockId);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve price history for stockId: " + stockId, e);
         }
     }
 }
