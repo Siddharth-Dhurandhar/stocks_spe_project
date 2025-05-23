@@ -212,7 +212,7 @@ const UserDepositWithdraw = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `/output_monitor/retrieve/balance`,
+        "/output_monitor/retrieve/balance",
         {
           method: "POST",
           headers: {

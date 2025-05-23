@@ -103,7 +103,7 @@ const LoginForm = ({ onBack }) => {
                 animation: "spin 1s linear infinite"
               }}
             ></span>
-          ) : "Connect Wallet"}
+          ) : "Login"}
         </button>
         
         <div style={{

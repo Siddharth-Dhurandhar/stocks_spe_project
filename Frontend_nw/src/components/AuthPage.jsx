@@ -77,7 +77,7 @@ const AuthPage = () => {
               cursor: "pointer"
             }}
           >
-            Connect
+            Login
             {activeTab === "login" && (
               <span style={{
                 position: "absolute",

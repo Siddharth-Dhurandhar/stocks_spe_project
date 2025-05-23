@@ -204,7 +204,7 @@ const Header = () => {
                 transition: "all 0.3s ease",
               }}
             >
-              Disconnect
+              Logout
             </button>
           </li>
         </ul>
