@@ -17,6 +17,7 @@ pipeline {
                         './Backend/price_monitor',
                         './Backend/SignUp',
                         './Backend/stock_ingestion',
+                        './Backend/user_activity',
                         './Frontend_nw'
                     ]
                     for (service in services) {
@@ -45,6 +46,7 @@ pipeline {
                         './Backend/price_monitor',
                         './Backend/SignUp',
                         './Backend/stock_ingestion',
+                        './Backend/user_activity',
                         './Frontend_nw'
                     ]
 
@@ -82,6 +84,7 @@ data:
   stock-ingestion-ip: "10.100.0.14"
   frontend-ip: "10.100.0.15"
   mysql-ip: "10.100.0.16"
+  user-activity-ip: "10.100.0.17"
 '''
                     sh "kubectl apply -f fixed-ips.yaml"
                 }
@@ -97,6 +100,7 @@ data:
                         'price_monitor'  : 8091,
                         'signup'         : 9010,
                         'stock_ingestion': 8090,
+                        'user_activity'  : 9020,
                         'frontend_nw'    : 5173
                     ]
                     
@@ -108,7 +112,8 @@ data:
                         'signup-ip': '10.100.0.13',
                         'stock-ingestion-ip': '10.100.0.14',
                         'frontend-ip': '10.100.0.15',
-                        'mysql-ip': '10.100.0.16'
+                        'mysql-ip': '10.100.0.16',
+                        'user-activity-ip': '10.100.0.17'
                     ]
                     
                     for (service in servicePorts.keySet()) {
