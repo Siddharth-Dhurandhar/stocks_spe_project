@@ -64,6 +64,7 @@ pipeline {
                 script {
                     sh 'kubectl apply -f mysql-statefulset.yaml'
                     sh 'kubectl rollout status statefulset/mysql --timeout=120s || exit 1'
+                    echo "MySQL deployment completed"
                 }
             }
         }
@@ -90,8 +91,64 @@ data:
                 }
             }
         }
+        
+        stage('Deploy Stock Ingestion') {
+            steps {
+                script {
+                    def service = 'stock_ingestion'
+                    def port = 8090
+                    def k8sName = service.replaceAll('_', '-').toLowerCase()
+                    def serviceType = 'ClusterIP'
+                    def servicePort = 80
+                    def targetPort = port
+                    def ipKey = k8sName + '-ip'
+                    def fixedIp = '10.100.0.14' // stock-ingestion-ip
+                    
+                    def statefulSetYaml = """\
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ${k8sName}
+spec:
+  serviceName: "${k8sName}-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${k8sName}
+  template:
+    metadata:
+      labels:
+        app: ${k8sName}
+    spec:
+      containers:
+      - name: ${k8sName}
+        image: ${DOCKER_HUB_REPO}/${service}:latest
+        ports:
+        - containerPort: ${port}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${k8sName}-service
+spec:
+  selector:
+    app: ${k8sName}
+  ports:
+  - protocol: TCP
+    port: ${servicePort}
+    targetPort: ${targetPort}
+  type: ${serviceType}
+  clusterIP: ${fixedIp}
+"""
+                    writeFile file: "${k8sName}-statefulset.yaml", text: statefulSetYaml
+                    sh "kubectl apply -f ${k8sName}-statefulset.yaml"
+                    sh "kubectl rollout status statefulset/${k8sName} --timeout=120s || exit 1"
+                    echo "Stock Ingestion deployment completed"
+                }
+            }
+        }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy Remaining Services') {
             steps {
                 script {
                     def servicePorts = [
@@ -99,7 +156,6 @@ data:
                         'outputmonitor'  : 9000,
                         'price_monitor'  : 8091,
                         'signup'         : 9010,
-                        'stock_ingestion': 8090,
                         'user_activity'  : 9020,
                         'frontend_nw'    : 5173
                     ]
@@ -110,9 +166,7 @@ data:
                         'outputmonitor-ip': '10.100.0.11',
                         'price-monitor-ip': '10.100.0.12',
                         'signup-ip': '10.100.0.13',
-                        'stock-ingestion-ip': '10.100.0.14',
                         'frontend-ip': '10.100.0.15',
-                        'mysql-ip': '10.100.0.16',
                         'user-activity-ip': '10.100.0.17'
                     ]
                     
