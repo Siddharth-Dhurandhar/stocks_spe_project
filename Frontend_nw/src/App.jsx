@@ -13,9 +13,11 @@ import AuthPage from "./components/AuthPage";
 import AllStocks from "./components/AllStocks";
 import Portfolio from "./components/Portfolio";
 import UserAccount from "./components/UserAccount";
+import Temp from "./components/Temp";
 import { UserProvider } from "./context/UserContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
+import UserDepositWithdraw from "./components/userDepositWithdraw";
 
 // Floating Orbs Background Component
 const FloatingOrbs = () => {
@@ -40,12 +42,12 @@ function App() {
     <div className="app-container">
       {/* Floating background orbs */}
       <FloatingOrbs />
-      
+
       {/* Main content */}
       <div className="content-container">
         {/* Render Header only if the current route is not in noHeaderRoutes */}
         {!noHeaderRoutes.includes(location.pathname) && <Header />}
-        
+
         <Routes>
           {/* Auth page is accessible without login */}
           <Route path="/auth" element={<AuthPage />} />
@@ -91,6 +93,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <AllStocks />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/temp"
+            element={
+              <ProtectedRoute>
+                <Temp />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/wallet"
+            element={
+              <ProtectedRoute>
+                <UserDepositWithdraw />
               </ProtectedRoute>
             }
           />
