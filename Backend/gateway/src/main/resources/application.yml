@@ -13,35 +13,35 @@ spring:
             maxAge: 3600
       routes:
         - id: stock_ingestion
-          uri: http://stock_ingestion
+          uri: http://stock-ingestion-service
           predicates:
             - Path=/stock_ingestion/**
           filters:
             - StripPrefix=1
 
         - id: price_monitor
-          uri: http://price_monitor
+          uri: http://price-monitor-service
           predicates:
             - Path=/price_monitor/**
           filters:
             - StripPrefix=1
 
         - id: OutputMonitor
-          uri: http://output_monitor
+          uri: http://outputmonitor-service
           predicates:
             - Path=/output_monitor/**
           filters:
             - StripPrefix=1
 
         - id: SignUp
-          uri: http://auth_portal
+          uri: http://signup-service
           predicates:
             - Path=/auth_portal/**
           filters:
             - StripPrefix=1
 
         - id: user_activity
-          uri: http://user_activity
+          uri: http://user-activity-service
           predicates:
             - Path=/user_activity/**
           filters:
