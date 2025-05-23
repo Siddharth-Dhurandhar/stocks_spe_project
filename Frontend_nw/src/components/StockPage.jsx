@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import {
   LineChart,
@@ -25,6 +25,8 @@ const StockPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [timeframe, setTimeframe] = useState("1W"); // 1D, 1W, 1M, 3M, 1Y
   const [transactionType, setTransactionType] = useState("buy"); // buy or sell
+  const [latestPrice, setLatestPrice] = useState(null);
+  const intervalRef = useRef(null);
 
   // Fetch stock details and price data
   useEffect(() => {
@@ -96,6 +98,68 @@ const StockPage = () => {
 
     fetchStockData();
   }, [id]);
+
+  // New useEffect for real-time price updates
+  useEffect(() => {
+    // Only start polling once we have stock details
+    if (!stockDetails) return;
+
+    const fetchLatestPrice = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:8085/output_monitor/retrieve/stockPriceHistory",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              stockId: parseInt(id),
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch price: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const newPrice = data.price;
+
+        // Update the latest price
+        setLatestPrice(newPrice);
+
+        // Add new data point to chart
+        setPriceData((prevData) => {
+          const now = new Date();
+          const newDataPoint = {
+            date: now.toISOString().split("T")[0],
+            price: parseFloat(newPrice),
+          };
+
+          // Create a new array with the latest data point added
+          // Keep only the latest 100 points to prevent performance issues
+          const updatedData = [...prevData, newDataPoint];
+          return updatedData.slice(Math.max(0, updatedData.length - 100));
+        });
+      } catch (error) {
+        console.error("Error fetching latest price:", error);
+      }
+    };
+
+    // Fetch immediately on first load
+    fetchLatestPrice();
+
+    // Set up the interval for subsequent fetches
+    intervalRef.current = setInterval(fetchLatestPrice, 5000);
+
+    // Clean up the interval when component unmounts
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [stockDetails, id]);
 
   const handleQuantityChange = (e) => {
     const value = e.target.value;
