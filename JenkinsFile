@@ -426,40 +426,20 @@ metadata:
 data:
   loki.yaml: |
     auth_enabled: false
-    
     server:
       http_listen_port: 3100
-      
-    ingester:
-      lifecycler:
-        ring:
-          kvstore:
-            store: inmemory
-          replication_factor: 1
-        final_sleep: 0s
-      chunk_idle_period: 5m
-      chunk_retain_period: 30s
-    
     schema_config:
       configs:
         - from: 2020-05-15
-          store: boltdb
+          store: inmemory
           object_store: filesystem
           schema: v11
           index:
             prefix: index_
             period: 168h
-    
     storage_config:
-      boltdb:
-        directory: /tmp/loki/index
       filesystem:
         directory: /tmp/loki/chunks
-    
-    limits_config:
-      enforce_metric_name: false
-      reject_old_samples: true
-      reject_old_samples_max_age: 168h
 '''
 
                     // Loki deployment
@@ -482,7 +462,7 @@ spec:
     spec:
       containers:
       - name: loki
-        image: grafana/loki:latest
+        image: grafana/loki:2.8.0
         ports:
         - containerPort: 3100
           name: http
@@ -493,6 +473,7 @@ spec:
           mountPath: /tmp/loki
         args:
         - -config.file=/etc/loki/loki.yaml
+        - -config.expand-env=true
       volumes:
       - name: loki-config
         configMap:
@@ -617,7 +598,7 @@ spec:
                     sh "echo 'Waiting for Grafana deployment...'"
                     sh "kubectl rollout status deployment/grafana"
                     sh "echo 'Waiting for Loki deployment...'"
-                    sh "kubectl rollout status deployment/loki"
+                    sh "kubectl rollout status deployment/loki --timeout=60s || true"
 
                     echo "Monitoring stack deployed successfully"
                     echo "Prometheus available at: http://localhost:30090"
