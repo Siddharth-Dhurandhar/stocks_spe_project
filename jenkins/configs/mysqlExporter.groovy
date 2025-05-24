@@ -1,4 +1,19 @@
 def deploy() {
+    // First create a ConfigMap with MySQL configuration
+    def mysqlConfigYaml = '''
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-exporter-config
+data:
+  .my.cnf: |
+    [client]
+    user=root
+    password=gaurav
+    host=mysql
+    port=3306
+'''
+
     def mysqlExporterYaml = '''
 apiVersion: apps/v1
 kind: Deployment
@@ -23,28 +38,38 @@ spec:
         - containerPort: 9104
           name: metrics
         env:
-        - name: DATA_SOURCE_NAME
-          value: "root:gaurav@tcp(mysql:3306)/"
         - name: MYSQLD_EXPORTER_WEB_LISTEN_ADDRESS
           value: "0.0.0.0:9104"
+        - name: MYSQLD_EXPORTER_WEB_TELEMETRY_PATH
+          value: "/metrics"
         args:
         - --web.listen-address=0.0.0.0:9104
+        - --config.my-cnf=/etc/mysql/.my.cnf
         - --collect.global_status
         - --collect.global_variables
         - --collect.info_schema.processlist
         - --collect.info_schema.tables
+        - --collect.info_schema.innodb_metrics
+        volumeMounts:
+        - name: mysql-config
+          mountPath: /etc/mysql
+          readOnly: true
         livenessProbe:
           httpGet:
-            path: /
+            path: /metrics
             port: 9104
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /
+            path: /metrics
             port: 9104
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 5
+      volumes:
+      - name: mysql-config
+        configMap:
+          name: mysql-exporter-config
 ---
 apiVersion: v1
 kind: Service
@@ -60,14 +85,19 @@ spec:
   clusterIP: "10.100.0.23"
 '''
 
-    // Delete existing deployment first to avoid conflicts
+    // Delete existing resources first
     sh "kubectl delete deployment mysql-exporter --ignore-not-found=true"
     sh "kubectl delete service mysql-exporter-service --ignore-not-found=true"
+    sh "kubectl delete configmap mysql-exporter-config --ignore-not-found=true"
     
-    // Wait a bit for cleanup
-    sh "sleep 5"
+    // Wait for cleanup
+    sh "sleep 10"
     
+    // Apply new configuration
+    writeFile file: "mysql-exporter-config.yaml", text: mysqlConfigYaml
     writeFile file: "mysql-exporter.yaml", text: mysqlExporterYaml
+    
+    sh "kubectl apply -f mysql-exporter-config.yaml"
     sh "kubectl apply -f mysql-exporter.yaml"
 }
 
