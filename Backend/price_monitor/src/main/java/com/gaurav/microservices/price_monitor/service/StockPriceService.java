@@ -54,19 +54,56 @@ public class StockPriceService {
                     String insertQuery = "INSERT INTO stock_price_stream (stock_id, stock_price, percentage_change) VALUES (?, ?, ?)";
                     totalInserted += jdbcTemplate.update(insertQuery, stockId, newPrice, percentageChange);
 
-                    // Check if total rows exceeds 5000 and delete oldest entries if needed
-                    String countQuery = "SELECT COUNT(*) FROM stock_price_stream";
-                    Integer totalRows = jdbcTemplate.queryForObject(countQuery, Integer.class);
-                    if (totalRows != null && totalRows > 5000) {
-                        int rowsToDelete = totalRows - 5000;
-                        String deleteOldestQuery = "DELETE FROM stock_price_stream ORDER BY created_at ASC LIMIT ?";
-                        jdbcTemplate.update(deleteOldestQuery, rowsToDelete);
-                        System.out.println("Cleaned up " + rowsToDelete + " oldest price records to maintain 5000 row limit");
-                    }
-
                     // Update the price in stock_current_price table
                     String updateCurrentPriceQuery = "UPDATE stock_current_price SET price = ?, percent_change=? WHERE stock_id = ?";
                     jdbcTemplate.update(updateCurrentPriceQuery, newPrice, percentageChange, stockId);
+                } else {
+                    // No price found - fetch from stream_master
+                    String getMasterDataQuery = "SELECT price, stock_name FROM stream_master WHERE stock_id = ?";
+                    try {
+                        // Use a holder object to capture the success status
+                        final boolean[] success = {false};
+
+                        jdbcTemplate.queryForObject(getMasterDataQuery, (rs, rowNum) -> {
+                            Double initialPrice = rs.getDouble("price");
+                            String stockName = rs.getString("stock_name");
+
+                            // Set percentage change to 0
+                            double percentageChange = 0.0;
+
+                            // Insert new price data with zero percentage change
+                            String insertQuery = "INSERT INTO stock_price_stream (stock_id, stock_price, percentage_change) VALUES (?, ?, ?)";
+                            jdbcTemplate.update(insertQuery, stockId, initialPrice, percentageChange);
+
+                            // Update or insert into stock_current_price table
+                            String upsertCurrentPriceQuery =
+                                    "INSERT INTO stock_current_price (stock_id, price, percent_change, stock_name) " +
+                                            "VALUES (?, ?, ?, ?) " +
+                                            "ON DUPLICATE KEY UPDATE price = VALUES(price), percent_change = VALUES(percent_change), stock_name = VALUES(stock_name)";
+                            jdbcTemplate.update(upsertCurrentPriceQuery, stockId, initialPrice, percentageChange, stockName);
+
+                            // Mark operation as successful
+                            success[0] = true;
+                            return null;
+                        }, stockId);
+
+                        // Increment totalInserted outside the lambda if successful
+                        if (success[0]) {
+                            totalInserted++;
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error fetching master data for stock_id " + stockId + ": " + e.getMessage());
+                    }
+                }
+
+                // Check if total rows exceeds 5000 and delete oldest entries if needed
+                String countQuery = "SELECT COUNT(*) FROM stock_price_stream";
+                Integer totalRows = jdbcTemplate.queryForObject(countQuery, Integer.class);
+                if (totalRows != null && totalRows > 5000) {
+                    int rowsToDelete = totalRows - 5000;
+                    String deleteOldestQuery = "DELETE FROM stock_price_stream ORDER BY created_at ASC LIMIT ?";
+                    jdbcTemplate.update(deleteOldestQuery, rowsToDelete);
+                    System.out.println("Cleaned up " + rowsToDelete + " oldest price records to maintain 5000 row limit");
                 }
             } catch (Exception e) {
                 System.err.println("Error processing stock_id " + stockId + ": " + e.getMessage());
