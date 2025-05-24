@@ -23,11 +23,14 @@ const StockPage = () => {
   const [totalPrice, setTotalPrice] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPercentage, setSelectedPercentage] = useState("50%"); // 25%, 50%, 75%, 100%
-  const [transactionType, setTransactionType] = useState("buy"); // buy or sell
+  const [selectedPercentage, setSelectedPercentage] = useState("50%");
+  const [transactionType, setTransactionType] = useState("buy");
   const [latestPrice, setLatestPrice] = useState(null);
   const [isPriceUp, setIsPriceUp] = useState(true);
   const intervalRef = useRef(null);
+  
+  // Add this line to define the percentage options
+  const percentageOptions = ["25%", "50%", "75%", "100%"];
 
   // Fetch stock details and price data
   useEffect(() => {
