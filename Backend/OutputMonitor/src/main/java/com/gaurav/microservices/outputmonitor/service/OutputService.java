@@ -28,7 +28,29 @@ public class OutputService {
     }
 
     public List<StockMasterEntity> getAllStocks() {
-        return stockMasterRepository.findAll();
+        // Get all stocks from repository
+        List<StockMasterEntity> stocks = stockMasterRepository.findAll();
+
+        // For each stock, replace initialPrice with current price
+        for (StockMasterEntity stock : stocks) {
+            try {
+                String query = "SELECT price FROM stock_current_price WHERE stock_id = ?";
+                Float currentPrice = jdbcTemplate.queryForObject(query, Float.class, stock.getStockId());
+
+                // Replace initialPrice with current price if available
+                if (currentPrice != null) {
+                    stock.setInitialPrice(currentPrice);
+                }
+            } catch (EmptyResultDataAccessException e) {
+                // No current price found, keep initialPrice as is
+                continue;
+            } catch (Exception e) {
+                // Log error but continue processing other stocks
+                System.err.println("Error fetching current price for stock ID " + stock.getStockId() + ": " + e.getMessage());
+            }
+        }
+
+        return stocks;
     }
 
     public Float getUserBalance(Long userId) {

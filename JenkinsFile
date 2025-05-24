@@ -417,8 +417,45 @@ data:
     
     server:
       http_listen_port: 3100
-      
+    
+    common:
+      path_prefix: /tmp/loki
+      storage:
+        filesystem:
+          chunks_directory: /tmp/loki/chunks
+          rules_directory: /tmp/loki/rules
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
+    
+    schema_config:
+      configs:
+        - from: 2021-01-01
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+    
+    compactor:
+      working_directory: /tmp/loki/compactor
+      shared_store: filesystem
+      compaction_interval: 5m
+    
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /tmp/loki/index
+        cache_location: /tmp/loki/index_cache
+        shared_store: filesystem
+      filesystem:
+        directory: /tmp/loki/chunks
+    
     ingester:
+      wal:
+        enabled: true
+        dir: /tmp/loki/wal
       lifecycler:
         ring:
           kvstore:
@@ -426,86 +463,6 @@ data:
           replication_factor: 1
       chunk_idle_period: 5m
       chunk_retain_period: 30s
-      wal:
-        dir: /tmp/wal
-        
-    schema_config:
-      configs:
-        - from: 2020-05-15
-          store: boltdb-shipper
-          object_store: filesystem
-          schema: v11
-          index:
-            prefix: index_
-            period: 24h
-            
-    storage_config:
-      boltdb_shipper:
-        active_index_directory: /tmp/loki/index
-        cache_location: /tmp/loki/index_cache
-        cache_ttl: 24h
-        shared_store: filesystem
-      filesystem:
-        directory: /tmp/loki/chunks
-        
-    limits_config:
-      reject_old_samples: true
-      reject_old_samples_max_age: 168h
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: loki
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: loki
-  template:
-    metadata:
-      labels:
-        app: loki
-    spec:
-      securityContext:
-        fsGroup: 10001
-        runAsGroup: 10001
-        runAsNonRoot: true
-        runAsUser: 10001
-      containers:
-      - name: loki
-        image: grafana/loki:2.8.0
-        ports:
-        - containerPort: 3100
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
-        args:
-        - -config.file=/etc/loki/loki.yaml
-        volumeMounts:
-        - name: loki-config
-          mountPath: /etc/loki
-        - name: loki-storage
-          mountPath: /tmp
-      volumes:
-      - name: loki-config
-        configMap:
-          name: loki-config
-      - name: loki-storage
-        emptyDir: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: loki-service
-spec:
-  selector:
-    app: loki
-  ports:
-  - port: 3100
-    targetPort: 3100
-    nodePort: 30100
-  type: NodePort
-  clusterIP: "10.100.0.22"
 '''
 
                     // Promtail for log collection
