@@ -23,7 +23,7 @@ const StockPage = () => {
   const [totalPrice, setTotalPrice] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [timeframe, setTimeframe] = useState("1W"); // 1D, 1W, 1M, 3M, 1Y
+  const [selectedPercentage, setSelectedPercentage] = useState("50%"); // 25%, 50%, 75%, 100%
   const [transactionType, setTransactionType] = useState("buy"); // buy or sell
   const [latestPrice, setLatestPrice] = useState(null);
   const [isPriceUp, setIsPriceUp] = useState(true);
@@ -115,18 +115,15 @@ const StockPage = () => {
         if (Array.isArray(data) && data.length > 0) {
           // Process the data for the chart
           const formattedData = data.map(item => {
-            // Parse the timestamp and format it
-            const date = new Date(item.created_at);
             return {
-              date: date,
-              displayDate: date.toLocaleString(),
+              date: item.created_at, // Store the original timestamp string
               price: item.stockPrice,
               percentChange: item.percentageChange
             };
           });
           
           // Sort by timestamp (oldest to newest)
-          formattedData.sort((a, b) => a.date - b.date);
+          formattedData.sort((a, b) => new Date(a.date) - new Date(b.date));
           
           // Update price data state
           setPriceData(formattedData);
@@ -255,37 +252,35 @@ const StockPage = () => {
     );
   }
 
-  // Filter data based on selected timeframe
-  const getTimeframeData = () => {
+  // Replace the timeframe filtering function with percentage-based filtering
+  const getFilteredData = () => {
     if (!priceData?.length) return [];
 
-    const now = new Date();
-    let cutoffDate = new Date();
-
-    switch (timeframe) {
-      case "1D":
-        cutoffDate.setDate(now.getDate() - 1);
+    const totalDataPoints = priceData.length;
+    let percentToShow = 50; // Default 50%
+    
+    switch (selectedPercentage) {
+      case "25%":
+        percentToShow = 25;
         break;
-      case "1W":
-        cutoffDate.setDate(now.getDate() - 7);
+      case "50%":
+        percentToShow = 50;
         break;
-      case "1M":
-        cutoffDate.setMonth(now.getMonth() - 1);
+      case "75%":
+        percentToShow = 75;
         break;
-      case "3M":
-        cutoffDate.setMonth(now.getMonth() - 3);
-        break;
-      case "1Y":
-        cutoffDate.setFullYear(now.getFullYear() - 1);
+      case "100%":
+        percentToShow = 100;
         break;
       default:
-        cutoffDate.setDate(now.getDate() - 7); // Default to 1W
+        percentToShow = 50;
     }
-
-    return priceData.filter(item => item.date >= cutoffDate);
+    
+    const dataPointsToShow = Math.max(1, Math.ceil(totalDataPoints * (percentToShow / 100)));
+    return priceData.slice(-dataPointsToShow); // Get the latest X% of data points
   };
 
-  const filteredData = getTimeframeData();
+  const filteredData = getFilteredData();
   const priceChange =
     filteredData.length >= 2
       ? filteredData[filteredData.length - 1].price - filteredData[0].price
@@ -396,7 +391,7 @@ const StockPage = () => {
                   color: "var(--text-muted)",
                 }}
               >
-                {timeframe}
+                {selectedPercentage} data
               </span>
             </div>
           </div>
@@ -427,33 +422,29 @@ const StockPage = () => {
           >
             <h2 style={{ margin: 0, fontSize: "1.25rem" }}>Price Chart</h2>
 
-            <div
-              style={{
-                display: "flex",
-                gap: "0.5rem",
-              }}
-            >
-              {["1D", "1W", "1M", "3M", "1Y"].map((period) => (
+            {/* Replace the timeframe buttons */}
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              {percentageOptions.map((percent) => (
                 <button
-                  key={period}
-                  onClick={() => setTimeframe(period)}
+                  key={percent}
+                  onClick={() => setSelectedPercentage(percent)}
                   style={{
                     padding: "0.35rem 0.75rem",
                     borderRadius: "8px",
                     border: "none",
                     background:
-                      timeframe === period
+                      selectedPercentage === percent
                         ? "var(--accent-blue)"
                         : "rgba(255, 255, 255, 0.1)",
                     color:
-                      timeframe === period ? "white" : "var(--text-secondary)",
+                      selectedPercentage === percent ? "white" : "var(--text-secondary)",
                     fontSize: "0.75rem",
                     fontWeight: "600",
                     cursor: "pointer",
                     transition: "all 0.2s ease",
                   }}
                 >
-                  {period}
+                  {percent}
                 </button>
               ))}
             </div>
@@ -477,19 +468,15 @@ const StockPage = () => {
                   </linearGradient>
                 </defs>
                 <XAxis
-                  dataKey="displayDate"
+                  dataKey="date"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "var(--text-muted)", fontSize: 12 }}
                   dy={10}
-                  tickFormatter={(time) => {
-                    // Format timestamp based on timeframe
-                    const date = new Date(time);
-                    if (timeframe === "1D") {
-                      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    } else {
-                      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-                    }
+                  tickFormatter={(timestamp) => {
+                    // Convert the API timestamp string to a readable format
+                    const date = new Date(timestamp);
+                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                   }}
                 />
                 <YAxis
@@ -517,9 +504,9 @@ const StockPage = () => {
                     color: isPriceUp ? "var(--accent-green)" : "#ef4444",
                   }}
                   formatter={(value) => [`$${value.toFixed(2)}`, "Price"]}
-                  labelFormatter={(label) => {
-                    const date = new Date(label);
-                    return date.toLocaleString();
+                  labelFormatter={(timestamp) => {
+                    // Format the full date and time for tooltip
+                    return new Date(timestamp).toLocaleString();
                   }}
                 />
                 <Area
