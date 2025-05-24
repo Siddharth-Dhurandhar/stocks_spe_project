@@ -11,6 +11,10 @@ public class GatewayConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
+                .route("actuator-routes", r -> r
+                        .path("/*/actuator/**")
+                        .uri("lb://#{segment[0]}")
+                )
                 .build();
     }
 }
