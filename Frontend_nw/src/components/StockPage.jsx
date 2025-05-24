@@ -32,126 +32,81 @@ const StockPage = () => {
   // Add this line to define the percentage options
   const percentageOptions = ["25%", "50%", "75%", "100%"];
 
-  // Fetch stock details and price data
-  useEffect(() => {
-    const fetchStockData = async () => {
-      try {
-        setIsLoading(true);
-        
-        const response = await fetch(
-          "/output_monitor/retrieve/stockDetail",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              stockId: parseInt(id),
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch stock data: ${response.status}`);
+  // Fetch functions
+  const fetchStockData = async () => {
+    try {
+      const response = await fetch(
+        "/output_monitor/retrieve/stockDetail",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            stockId: parseInt(id),
+          }),
         }
+      );
+      if (!response.ok) throw new Error(`Failed to fetch stock data: ${response.status}`);
+      const data = await response.json();
+      const processedData = {
+        ...data,
+        initialPrice: parseFloat(data.initialPrice) || 0,
+        volatility: parseFloat(data.volatility) || 1
+      };
+      setStockDetails(processedData);
+    } catch (error) {
+      console.error("Error fetching stock data:", error);
+    }
+  };
 
-        const data = await response.json();
-        
-        // Log the exact data to debug
-        console.log("Stock data response:", data);
-        
-        // Make sure numeric values are properly parsed
-        const processedData = {
-          ...data,
-          initialPrice: parseFloat(data.initialPrice) || 0,
-          volatility: parseFloat(data.volatility) || 1
-        };
-        
-        // Update state with processed data
-        setStockDetails(processedData);
-        console.log("Processed stock details:", processedData);
-
-        // Generate price data with the processed values
-        const mockPriceData = generateMockPriceData(
-          processedData.initialPrice, 
-          processedData.volatility,
-          30
-        );
-        
-        setPriceData(mockPriceData);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching stock data:", error);
-        setIsLoading(false);
+  const fetchPriceHistory = async () => {
+    try {
+      const response = await fetch(
+        "/output_monitor/retrieve/stockPriceHistory",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            stockId: parseInt(id),
+          }),
+        }
+      );
+      if (!response.ok) throw new Error(`Failed to fetch price history: ${response.status}`);
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const formattedData = data.map(item => ({
+          date: item.created_at,
+          price: item.stockPrice,
+          percentChange: item.percentageChange
+        }));
+        formattedData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        setPriceData(formattedData);
+        const latestData = formattedData[formattedData.length - 1];
+        setLatestPrice(latestData.price);
+        setIsPriceUp(latestData.percentChange >= 0);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching price history:", error);
+    }
+  };
 
+  // Polling effect
+  useEffect(() => {
+    setIsLoading(true);
     fetchStockData();
-  }, [id]);
-
-  // Replace the price data fetching useEffect with this implementation
-  useEffect(() => {
-    const fetchPriceHistory = async () => {
-      try {
-        setIsLoading(true);
-        
-        const response = await fetch(
-          "/output_monitor/retrieve/stockPriceHistory",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              stockId: parseInt(id),
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch price history: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("Price history data:", data);
-        
-        if (Array.isArray(data) && data.length > 0) {
-          // Process the data for the chart
-          const formattedData = data.map(item => {
-            return {
-              date: item.created_at, // Store the original timestamp string
-              price: item.stockPrice,
-              percentChange: item.percentageChange
-            };
-          });
-          
-          // Sort by timestamp (oldest to newest)
-          formattedData.sort((a, b) => new Date(a.date) - new Date(b.date));
-          
-          // Update price data state
-          setPriceData(formattedData);
-          
-          // Update latest price for display
-          if (formattedData.length > 0) {
-            const latestData = formattedData[formattedData.length - 1];
-            setLatestPrice(latestData.price);
-            
-            // Determine if price is up or down based on the percentage change
-            const isUp = latestData.percentChange >= 0;
-            setIsPriceUp(isUp);
-          }
-        } else {
-          console.error("Invalid price history data format:", data);
-        }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching price history:", error);
-        setIsLoading(false);
-      }
-    };
-
     fetchPriceHistory();
+    setIsLoading(false);
+
+    const interval = setInterval(() => {
+      fetchStockData();
+      fetchPriceHistory();
+    }, 1000);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line
   }, [id]);
 
   const handleQuantityChange = (e) => {
