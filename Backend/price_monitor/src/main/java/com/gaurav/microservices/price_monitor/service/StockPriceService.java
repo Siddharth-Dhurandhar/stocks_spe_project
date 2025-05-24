@@ -60,39 +60,31 @@ public class StockPriceService {
                 } else {
                     // No price found - fetch from stock_master
                     String getMasterDataQuery = "SELECT price, stock_name FROM stock_master WHERE stock_id = ?";
-                    try {
-                        // Use a holder object to capture the success status
-                        final boolean[] success = {false};
 
-                        jdbcTemplate.queryForObject(getMasterDataQuery, (rs, rowNum) -> {
-                            Double initialPrice = rs.getDouble("price");
-                            String stockName = rs.getString("stock_name");
+                    List<Map<String, Object>> results = jdbcTemplate.queryForList(getMasterDataQuery, stockId);
 
-                            // Set percentage change to 0
-                            double percentageChange = 0.0;
+                    if (!results.isEmpty()) {
+                        Map<String, Object> data = results.get(0);
+                        Double initialPrice = ((Number) data.get("price")).doubleValue();
+                        String stockName = (String) data.get("stock_name");
 
-                            // Insert new price data with zero percentage change
-                            String insertQuery = "INSERT INTO stock_price_stream (stock_id, stock_price, percentage_change) VALUES (?, ?, ?)";
-                            jdbcTemplate.update(insertQuery, stockId, initialPrice, percentageChange);
+                        // Set percentage change to 0
+                        double percentageChange = 0.0;
 
-                            // Update or insert into stock_current_price table
-                            String upsertCurrentPriceQuery =
-                                    "INSERT INTO stock_current_price (stock_id, price, percent_change, stock_name) " +
-                                            "VALUES (?, ?, ?, ?) " +
-                                            "ON DUPLICATE KEY UPDATE price = VALUES(price), percent_change = VALUES(percent_change), stock_name = VALUES(stock_name)";
-                            jdbcTemplate.update(upsertCurrentPriceQuery, stockId, initialPrice, percentageChange, stockName);
+                        // Insert new price data with zero percentage change
+                        String insertQuery = "INSERT INTO stock_price_stream (stock_id, stock_price, percentage_change) VALUES (?, ?, ?)";
+                        jdbcTemplate.update(insertQuery, stockId, initialPrice, percentageChange);
 
-                            // Mark operation as successful
-                            success[0] = true;
-                            return null;
-                        }, stockId);
+                        // Update or insert into stock_current_price table
+                        String upsertCurrentPriceQuery =
+                                "INSERT INTO stock_current_price (stock_id, price, percent_change, stock_name) " +
+                                        "VALUES (?, ?, ?, ?) " +
+                                        "ON DUPLICATE KEY UPDATE price = VALUES(price), percent_change = VALUES(percent_change), stock_name = VALUES(stock_name)";
+                        jdbcTemplate.update(upsertCurrentPriceQuery, stockId, initialPrice, percentageChange, stockName);
 
-                        // Increment totalInserted outside the lambda if successful
-                        if (success[0]) {
-                            totalInserted++;
-                        }
-                    } catch (Exception e) {
-                        System.err.println("Error fetching master data for stock_id " + stockId + ": " + e.getMessage());
+                        totalInserted++;
+                    } else {
+                        System.err.println("No data found in stock_master for stock_id " + stockId);
                     }
                 }
 
