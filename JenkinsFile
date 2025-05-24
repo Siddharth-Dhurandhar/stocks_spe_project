@@ -414,55 +414,74 @@ metadata:
 data:
   loki.yaml: |
     auth_enabled: false
-    
     server:
       http_listen_port: 3100
-    
-    common:
-      path_prefix: /tmp/loki
-      storage:
-        filesystem:
-          chunks_directory: /tmp/loki/chunks
-          rules_directory: /tmp/loki/rules
-      replication_factor: 1
-      ring:
-        kvstore:
-          store: inmemory
-    
     schema_config:
       configs:
-        - from: 2021-01-01
-          store: boltdb-shipper
+        - from: 2020-05-15
+          store: inmemory
           object_store: filesystem
           schema: v11
           index:
             prefix: index_
             period: 24h
-    
-    compactor:
-      working_directory: /tmp/loki/compactor
-      shared_store: filesystem
-      compaction_interval: 5m
-    
     storage_config:
-      boltdb_shipper:
-        active_index_directory: /tmp/loki/index
-        cache_location: /tmp/loki/index_cache
-        shared_store: filesystem
       filesystem:
         directory: /tmp/loki/chunks
-    
-    ingester:
-      wal:
-        enabled: true
-        dir: /tmp/loki/wal
-      lifecycler:
-        ring:
-          kvstore:
-            store: inmemory
-          replication_factor: 1
-      chunk_idle_period: 5m
-      chunk_retain_period: 30s
+    limits_config:
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  labels:
+    app: loki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      containers:
+      - name: loki
+        image: grafana/loki:2.8.0
+        imagePullPolicy: Always
+        args:
+        - -config.file=/etc/loki/loki.yaml
+        ports:
+        - containerPort: 3100
+          name: http
+        volumeMounts:
+        - name: loki-config
+          mountPath: /etc/loki
+        - name: loki-storage
+          mountPath: /tmp/loki
+      volumes:
+      - name: loki-config
+        configMap:
+          name: loki-config
+      - name: loki-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-service
+spec:
+  selector:
+    app: loki
+  ports:
+  - port: 3100
+    targetPort: 3100
+    nodePort: 30100
+  type: NodePort
+  clusterIP: "10.100.0.22"
 '''
 
                     // Promtail for log collection
@@ -577,6 +596,7 @@ data:
 
                     // Delete existing Loki and Promtail before applying new configs
                     sh "kubectl delete deployment loki --ignore-not-found=true"
+                    sh "kubectl delete service loki-service --ignore-not-found=true"
                     sh "kubectl delete daemonset promtail --ignore-not-found=true"
                     sh "kubectl delete configmap loki-config promtail-config --ignore-not-found=true"
 
