@@ -283,55 +283,24 @@ metadata:
   name: prometheus-config
 data:
   prometheus.yml: |
-    global:
-      scrape_interval: 15s
-    scrape_configs:
-      - job_name: 'gateway'
-        metrics_path: '/actuator/prometheus'
-        static_configs:
-          - targets: ['gateway-service:80']
-            labels:
-              service: gateway
-              
-      - job_name: 'outputmonitor'
-        metrics_path: '/outputmonitor/actuator/prometheus'
-        static_configs:
-          - targets: ['gateway-service:80']
-            labels:
-              service: outputmonitor
-              
-      - job_name: 'price-monitor'
-        metrics_path: '/price-monitor/actuator/prometheus'
-        static_configs:
-          - targets: ['gateway-service:80']
-            labels:
-              service: price-monitor
-              
-      - job_name: 'signup'
-        metrics_path: '/signup/actuator/prometheus'
-        static_configs:
-          - targets: ['gateway-service:80']
-            labels:
-              service: signup
-              
-      - job_name: 'stock-ingestion'
-        metrics_path: '/stock-ingestion/actuator/prometheus'
-        static_configs:
-          - targets: ['gateway-service:80']
-            labels:
-              service: stock-ingestion
-              
-      - job_name: 'user-activity'
-        metrics_path: '/user-activity/actuator/prometheus'
-        static_configs:
-          - targets: ['gateway-service:80']
-            labels:
-              service: user-activity
-              
-      - job_name: 'prometheus'
-        metrics_path: '/metrics'
-        static_configs:
-          - targets: ['localhost:9090']
+  global:
+    scrape_interval: 15s
+  scrape_configs:
+    - job_name: 'gateway'
+      metrics_path: '/actuator/prometheus'
+      static_configs:
+        - targets: ['gateway-service:80']
+          labels:
+            service: gateway
+            
+    - job_name: 'outputmonitor'
+      metrics_path: '/actuator/prometheus'
+      static_configs:
+        - targets: ['outputmonitor-service.default.svc.cluster.local']
+          labels:
+            service: outputmonitor
+            
+    # Repeat this pattern for other services
 '''
                     // Grafana deployment
                     def grafanaYaml = '''
