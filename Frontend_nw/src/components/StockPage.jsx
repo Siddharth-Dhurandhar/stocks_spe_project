@@ -373,13 +373,12 @@ const StockPage = () => {
             >
               <span
                 style={{
-                  color: isPriceUp ? "var(--accent-green)" : "#ef4444",
+                  color: isPriceUp ? "var(--accent-green)" : "#ef4444", 
                   fontWeight: "600",
                   fontSize: "0.875rem",
                 }}
               >
-                {isPriceUp ? "▲" : "▼"} ${Math.abs(priceChange).toFixed(2)} (
-                {Math.abs(priceChangePercent).toFixed(2)}%)
+                {isPriceUp ? "▲" : "▼"} Percent Change: {stockDetails?.volatility ? stockDetails.volatility.toFixed(2) : "0.00"}%
               </span>
               <span
                 style={{
