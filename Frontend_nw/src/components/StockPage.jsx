@@ -26,6 +26,7 @@ const StockPage = () => {
   const [timeframe, setTimeframe] = useState("1W"); // 1D, 1W, 1M, 3M, 1Y
   const [transactionType, setTransactionType] = useState("buy"); // buy or sell
   const [latestPrice, setLatestPrice] = useState(null);
+  const [isPriceUp, setIsPriceUp] = useState(true);
   const intervalRef = useRef(null);
 
   // Fetch stock details and price data
@@ -85,13 +86,12 @@ const StockPage = () => {
     fetchStockData();
   }, [id]);
 
-  // New useEffect for real-time price updates
+  // Replace the price data fetching useEffect with this implementation
   useEffect(() => {
-    // Only start polling once we have stock details
-    if (!stockDetails) return;
-
-    const fetchLatestPrice = async () => {
+    const fetchPriceHistory = async () => {
       try {
+        setIsLoading(true);
+        
         const response = await fetch(
           "/output_monitor/retrieve/stockPriceHistory",
           {
@@ -106,46 +106,53 @@ const StockPage = () => {
         );
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch price: ${response.status}`);
+          throw new Error(`Failed to fetch price history: ${response.status}`);
         }
 
         const data = await response.json();
-        const newPrice = data.price;
-
-        // Update the latest price
-        setLatestPrice(newPrice);
-
-        // Add new data point to chart
-        setPriceData((prevData) => {
-          const now = new Date();
-          const newDataPoint = {
-            date: now.toISOString().split("T")[0],
-            price: parseFloat(newPrice),
-          };
-
-          // Create a new array with the latest data point added
-          // Keep only the latest 100 points to prevent performance issues
-          const updatedData = [...prevData, newDataPoint];
-          return updatedData.slice(Math.max(0, updatedData.length - 100));
-        });
+        console.log("Price history data:", data);
+        
+        if (Array.isArray(data) && data.length > 0) {
+          // Process the data for the chart
+          const formattedData = data.map(item => {
+            // Parse the timestamp and format it
+            const date = new Date(item.created_at);
+            return {
+              date: date,
+              displayDate: date.toLocaleString(),
+              price: item.stockPrice,
+              percentChange: item.percentageChange
+            };
+          });
+          
+          // Sort by timestamp (oldest to newest)
+          formattedData.sort((a, b) => a.date - b.date);
+          
+          // Update price data state
+          setPriceData(formattedData);
+          
+          // Update latest price for display
+          if (formattedData.length > 0) {
+            const latestData = formattedData[formattedData.length - 1];
+            setLatestPrice(latestData.price);
+            
+            // Determine if price is up or down based on the percentage change
+            const isUp = latestData.percentChange >= 0;
+            setIsPriceUp(isUp);
+          }
+        } else {
+          console.error("Invalid price history data format:", data);
+        }
+        
+        setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching latest price:", error);
+        console.error("Error fetching price history:", error);
+        setIsLoading(false);
       }
     };
 
-    // Fetch immediately on first load
-    fetchLatestPrice();
-
-    // Set up the interval for subsequent fetches
-    intervalRef.current = setInterval(fetchLatestPrice, 5000);
-
-    // Clean up the interval when component unmounts
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [stockDetails, id]);
+    fetchPriceHistory();
+  }, [id]);
 
   const handleQuantityChange = (e) => {
     const value = e.target.value;
@@ -275,7 +282,7 @@ const StockPage = () => {
         cutoffDate.setDate(now.getDate() - 7); // Default to 1W
     }
 
-    return priceData.filter((item) => new Date(item.date) >= cutoffDate);
+    return priceData.filter(item => item.date >= cutoffDate);
   };
 
   const filteredData = getTimeframeData();
@@ -287,7 +294,8 @@ const StockPage = () => {
     filteredData.length >= 2 && filteredData[0].price !== 0
       ? (priceChange / filteredData[0].price) * 100
       : 0;
-  const isPriceUp = priceChange >= 0;
+  // Rename this variable to avoid the redeclaration
+  const isPriceIncreasing = priceChange >= 0;
 
   return (
     <div style={{ margin: "1rem", overflow: "hidden" }}>
@@ -361,7 +369,7 @@ const StockPage = () => {
                 color: isPriceUp ? "var(--accent-green)" : "#ef4444",
               }}
             >
-              ${stockDetails?.initialPrice ? stockDetails.initialPrice.toFixed(2) : "0.00"}
+              ${latestPrice ? latestPrice.toFixed(2) : (stockDetails?.initialPrice ? stockDetails.initialPrice.toFixed(2) : "0.00")}
             </div>
             <div
               style={{
@@ -378,7 +386,9 @@ const StockPage = () => {
                   fontSize: "0.875rem",
                 }}
               >
-                {isPriceUp ? "▲" : "▼"} Percent Change: {stockDetails?.volatility ? stockDetails.volatility.toFixed(2) : "0.00"}%
+                {isPriceUp ? "▲" : "▼"} {filteredData.length > 0 ? 
+                  Math.abs(filteredData[filteredData.length-1].percentChange).toFixed(2) : 
+                  (stockDetails?.volatility ? stockDetails.volatility.toFixed(2) : "0.00")}%
               </span>
               <span
                 style={{
@@ -467,18 +477,28 @@ const StockPage = () => {
                   </linearGradient>
                 </defs>
                 <XAxis
-                  dataKey="date"
+                  dataKey="displayDate"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "var(--text-muted)", fontSize: 12 }}
                   dy={10}
+                  tickFormatter={(time) => {
+                    // Format timestamp based on timeframe
+                    const date = new Date(time);
+                    if (timeframe === "1D") {
+                      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } else {
+                      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                    }
+                  }}
                 />
                 <YAxis
-                  domain={["dataMin - 10", "dataMax + 10"]}
+                  domain={['auto', 'auto']}
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "var(--text-muted)", fontSize: 12 }}
                   dx={-10}
+                  tickFormatter={(value) => `$${Math.round(value)}`}
                 />
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -496,14 +516,19 @@ const StockPage = () => {
                   itemStyle={{
                     color: isPriceUp ? "var(--accent-green)" : "#ef4444",
                   }}
-                  formatter={(value) => [`$${value}`, "Price"]}
+                  formatter={(value) => [`$${value.toFixed(2)}`, "Price"]}
+                  labelFormatter={(label) => {
+                    const date = new Date(label);
+                    return date.toLocaleString();
+                  }}
                 />
                 <Area
                   type="monotone"
                   dataKey="price"
                   stroke={isPriceUp ? "var(--accent-green)" : "#ef4444"}
-                  fill={`url(#colorPrice)`}
+                  fill="url(#colorPrice)"
                   strokeWidth={2}
+                  animationDuration={500}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -631,7 +656,7 @@ const StockPage = () => {
           }}>
             <span style={{ color: "var(--text-secondary)" }}>Market Price</span>
             <span style={{ fontWeight: "600" }}>
-              ${(stockDetails?.initialPrice || 0).toFixed(2)}
+              ${latestPrice ? latestPrice.toFixed(2) : (stockDetails?.initialPrice || 0).toFixed(2)}
             </span>
           </div>
 
