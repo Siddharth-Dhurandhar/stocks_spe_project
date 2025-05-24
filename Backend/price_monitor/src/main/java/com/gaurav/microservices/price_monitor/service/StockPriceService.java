@@ -58,8 +58,8 @@ public class StockPriceService {
                     String updateCurrentPriceQuery = "UPDATE stock_current_price SET price = ?, percent_change=? WHERE stock_id = ?";
                     jdbcTemplate.update(updateCurrentPriceQuery, newPrice, percentageChange, stockId);
                 } else {
-                    // No price found - fetch from stream_master
-                    String getMasterDataQuery = "SELECT price, stock_name FROM stream_master WHERE stock_id = ?";
+                    // No price found - fetch from stock_master
+                    String getMasterDataQuery = "SELECT price, stock_name FROM stock_master WHERE stock_id = ?";
                     try {
                         // Use a holder object to capture the success status
                         final boolean[] success = {false};
