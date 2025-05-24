@@ -86,6 +86,9 @@ data:
   frontend-ip: "10.100.0.15"
   mysql-ip: "10.100.0.16"
   user-activity-ip: "10.100.0.17"
+  prometheus-ip: "10.100.0.20"
+  grafana-ip: "10.100.0.21"
+  loki-ip: "10.100.0.22"
 '''
                     sh "kubectl apply -f fixed-ips.yaml"
                 }
@@ -228,75 +231,12 @@ spec:
         stage('Deploy Monitoring Stack') {
             steps {
                 script {
-                    // Update ConfigMap to add monitoring IPs
-                    writeFile file: "fixed-ips-monitoring.yaml", text: '''
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: service-ips
-data:
-  gateway-ip: "10.100.0.10"
-  outputmonitor-ip: "10.100.0.11"
-  price-monitor-ip: "10.100.0.12"
-  signup-ip: "10.100.0.13"
-  stock-ingestion-ip: "10.100.0.14"
-  frontend-ip: "10.100.0.15"
-  mysql-ip: "10.100.0.16"
-  user-activity-ip: "10.100.0.17"
-  prometheus-ip: "10.100.0.20"
-  grafana-ip: "10.100.0.21"
-  loki-ip: "10.100.0.22"
-'''
-                    sh "kubectl apply -f fixed-ips-monitoring.yaml"
-                    
-                    // Prometheus ConfigMap
-                    def prometheusConfigYaml = '''
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: prometheus-config
-data:
-  prometheus.yml: |
-    global:
-      scrape_interval: 15s
-    scrape_configs:
-      # Spring Boot microservices
-      - job_name: 'spring-boot'
-        metrics_path: '/actuator/prometheus'
-        kubernetes_sd_configs:
-          - role: endpoints
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_service_name]
-            action: keep
-            regex: .*-service
-          - source_labels: [__meta_kubernetes_service_name]
-            action: replace
-            target_label: app
-            regex: (.*)-service
-            replacement: $1
-      
-      # Prometheus itself
-      - job_name: 'prometheus'
-        static_configs:
-          - targets: ['localhost:9090']
-      
-      # Kubernetes nodes
-      - job_name: 'kubernetes-nodes'
-        kubernetes_sd_configs:
-          - role: node
-        relabel_configs:
-          - action: labelmap
-            regex: __meta_kubernetes_node_label_(.+)
-'''
-                    
-                    // Create Prometheus deployment
-                    def prometheusDeploymentYaml = '''
+                    // Prometheus deployment
+                    def prometheusYaml = '''
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus
-  labels:
-    app: prometheus
 spec:
   replicas: 1
   selector:
@@ -310,25 +250,15 @@ spec:
       containers:
       - name: prometheus
         image: prom/prometheus:latest
-        args:
-        - "--config.file=/etc/prometheus/prometheus.yml"
-        - "--storage.tsdb.path=/prometheus"
-        - "--web.console.libraries=/usr/share/prometheus/console_libraries"
-        - "--web.console.templates=/usr/share/prometheus/consoles"
         ports:
         - containerPort: 9090
         volumeMounts:
-        - name: prometheus-config-volume
+        - name: prometheus-config
           mountPath: /etc/prometheus/
-        - name: prometheus-storage-volume
-          mountPath: /prometheus
       volumes:
-      - name: prometheus-config-volume
+      - name: prometheus-config
         configMap:
-          defaultMode: 420
           name: prometheus-config
-      - name: prometheus-storage-volume
-        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -337,43 +267,47 @@ metadata:
 spec:
   selector:
     app: prometheus
-  type: NodePort
   ports:
   - port: 9090
     targetPort: 9090
     nodePort: 30090
+  type: NodePort
   clusterIP: "10.100.0.20"
 '''
-
-                    // Grafana datasources ConfigMap
-                    def grafanaDatasourcesYaml = '''
+                    
+                    // Prometheus configuration
+                    def prometheusConfigYaml = '''
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grafana-datasources
+  name: prometheus-config
 data:
-  datasources.yaml: |
-    apiVersion: 1
-    datasources:
-    - name: Prometheus
-      type: prometheus
-      url: http://prometheus-service:9090
-      access: proxy
-      isDefault: true
-    - name: Loki
-      type: loki
-      url: http://loki-service:3100
-      access: proxy
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: 'gateway'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['gateway-service:80']
+            labels:
+              service: gateway
+              
+      - job_name: 'outputmonitor'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['outputmonitor-service.default.svc.cluster.local']
+            labels:
+              service: outputmonitor
+      
+      # Add other services with the same pattern
 '''
-
-                    // Create Grafana deployment
-                    def grafanaDeploymentYaml = '''
+                    // Grafana deployment
+                    def grafanaYaml = '''
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  labels:
-    app: grafana
 spec:
   replicas: 1
   selector:
@@ -394,6 +328,8 @@ spec:
           value: "admin"
         - name: GF_SECURITY_ADMIN_PASSWORD
           value: "admin"
+        - name: GF_INSTALL_PLUGINS
+          value: "grafana-clock-panel,grafana-simple-json-datasource,grafana-piechart-panel"
         volumeMounts:
         - name: grafana-datasources
           mountPath: /etc/grafana/provisioning/datasources
@@ -409,47 +345,41 @@ metadata:
 spec:
   selector:
     app: grafana
-  type: NodePort
   ports:
   - port: 3000
     targetPort: 3000
     nodePort: 30300
+  type: NodePort
   clusterIP: "10.100.0.21"
 '''
 
-                    // Loki ConfigMap
-                    def lokiConfigYaml = '''
+                    // Grafana datasources configuration
+                    def grafanaDatasourcesYaml = '''
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: loki-config
+  name: grafana-datasources
 data:
-  loki.yaml: |
-    auth_enabled: false
-    server:
-      http_listen_port: 3100
-    schema_config:
-      configs:
-        - from: 2020-05-15
-          store: inmemory
-          object_store: filesystem
-          schema: v11
-          index:
-            prefix: index_
-            period: 168h
-    storage_config:
-      filesystem:
-        directory: /tmp/loki/chunks
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus-service:9090
+      isDefault: true
+    - name: Loki
+      type: loki
+      access: proxy
+      url: http://loki-service:3100
 '''
 
                     // Loki deployment
-                    def lokiDeploymentYaml = '''
+                    def lokiYaml = '''
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: loki
-  labels:
-    app: loki
 spec:
   replicas: 1
   selector:
@@ -462,24 +392,12 @@ spec:
     spec:
       containers:
       - name: loki
-        image: grafana/loki:2.8.0
+        image: grafana/loki:latest
         ports:
         - containerPort: 3100
-          name: http
-        volumeMounts:
-        - name: loki-config
-          mountPath: /etc/loki
-        - name: loki-storage
-          mountPath: /tmp/loki
-        args:
-        - -config.file=/etc/loki/loki.yaml
-        - -config.expand-env=true
-      volumes:
-      - name: loki-config
-        configMap:
-          name: loki-config
-      - name: loki-storage
-        emptyDir: {}
+        command:
+        - /usr/bin/loki
+        - -config.file=/etc/loki/local-config.yaml
 ---
 apiVersion: v1
 kind: Service
@@ -488,48 +406,16 @@ metadata:
 spec:
   selector:
     app: loki
-  type: NodePort
   ports:
   - port: 3100
     targetPort: 3100
     nodePort: 30100
+  type: NodePort
   clusterIP: "10.100.0.22"
 '''
 
-                    // Promtail ConfigMap
-                    def promtailConfigYaml = '''
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: promtail-config
-data:
-  promtail.yaml: |
-    server:
-      http_listen_port: 9080
-      grpc_listen_port: 0
-    
-    positions:
-      filename: /tmp/positions.yaml
-    
-    clients:
-      - url: http://loki-service:3100/loki/api/v1/push
-    
-    scrape_configs:
-      - job_name: kubernetes-pods
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          - source_labels:
-              - __meta_kubernetes_pod_controller_name
-            regex: ([0-9a-z-.]+)(-[0-9a-f]{8,10})?
-            action: replace
-            target_label: app
-        pipeline_stages:
-          - docker: {}
-'''
-
-                    // Promtail DaemonSet
-                    def promtailDaemonSetYaml = '''
+                    // Promtail for log collection
+                    def promtailYaml = '''
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -547,63 +433,77 @@ spec:
       - name: promtail
         image: grafana/promtail:latest
         args:
-        - -config.file=/etc/promtail/promtail.yaml
+        - -config.file=/etc/promtail/promtail-config.yaml
         volumeMounts:
-        - name: config
+        - name: promtail-config
           mountPath: /etc/promtail
         - name: containers
-          mountPath: /var/lib/docker/containers
-          readOnly: true
+          mountPath: /var/log/containers
         - name: pods
           mountPath: /var/log/pods
-          readOnly: true
-        ports:
-        - containerPort: 9080
-          name: http-metrics
-          protocol: TCP
       volumes:
-      - name: config
+      - name: promtail-config
         configMap:
           name: promtail-config
       - name: containers
         hostPath:
-          path: /var/lib/docker/containers
+          path: /var/log/containers
       - name: pods
         hostPath:
           path: /var/log/pods
 '''
 
-                    // Apply configs
-                    writeFile file: "prometheus-config.yaml", text: prometheusConfigYaml
-                    writeFile file: "prometheus-deployment.yaml", text: prometheusDeploymentYaml
-                    writeFile file: "grafana-datasources.yaml", text: grafanaDatasourcesYaml
-                    writeFile file: "grafana-deployment.yaml", text: grafanaDeploymentYaml
-                    writeFile file: "loki-config.yaml", text: lokiConfigYaml
-                    writeFile file: "loki-deployment.yaml", text: lokiDeploymentYaml
-                    writeFile file: "promtail-config.yaml", text: promtailConfigYaml
-                    writeFile file: "promtail-daemonset.yaml", text: promtailDaemonSetYaml
-                    
-                    // Apply resources
-                    sh "kubectl apply -f prometheus-config.yaml"
-                    sh "kubectl apply -f prometheus-deployment.yaml"
-                    sh "kubectl apply -f grafana-datasources.yaml"
-                    sh "kubectl apply -f grafana-deployment.yaml"
-                    sh "kubectl apply -f loki-config.yaml"
-                    sh "kubectl apply -f loki-deployment.yaml"
-                    sh "kubectl apply -f promtail-config.yaml"
-                    sh "kubectl apply -f promtail-daemonset.yaml"
-                    
-                    sh "echo 'Waiting for Prometheus deployment...'"
-                    sh "kubectl rollout status deployment/prometheus"
-                    sh "echo 'Waiting for Grafana deployment...'"
-                    sh "kubectl rollout status deployment/grafana"
-                    sh "echo 'Waiting for Loki deployment...'"
-                    sh "kubectl rollout status deployment/loki --timeout=60s || true"
+                    // Promtail configuration
+                    def promtailConfigYaml = '''
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+data:
+  promtail-config.yaml: |
+    server:
+      http_listen_port: 9080
+    positions:
+      filename: /tmp/positions.yaml
+    clients:
+      - url: http://loki-service:3100/loki/api/v1/push
 
-                    echo "Monitoring stack deployed successfully"
-                    echo "Prometheus available at: http://localhost:30090"
-                    echo "Grafana available at: http://localhost:30300 (admin/admin)"
-                    echo "Loki available at: http://localhost:30100 (access through Grafana)"
+    scrape_configs:
+    - job_name: kubernetes-pods
+      kubernetes_sd_configs:
+      - role: pod
+      # add stages you need (docker, json, etc)
+      pipeline_stages:
+        - docker: {}
+      # now extract k8s labels into Loki labels
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_label_app]
+          target_label: app
+        - source_labels: [__meta_kubernetes_namespace]
+          target_label: namespace
+        - source_labels: [__meta_kubernetes_pod_container_name]
+          target_label: container
+'''
+
+                    // Write and apply all configurations
+                    writeFile file: "prometheus.yaml", text: prometheusYaml
+                    writeFile file: "prometheus-config.yaml", text: prometheusConfigYaml
+                    writeFile file: "grafana.yaml", text: grafanaYaml
+                    writeFile file: "grafana-datasources.yaml", text: grafanaDatasourcesYaml
+                    writeFile file: "loki.yaml", text: lokiYaml
+                    writeFile file: "promtail.yaml", text: promtailYaml
+                    writeFile file: "promtail-config.yaml", text: promtailConfigYaml
+                    
+                    // Apply configurations
+                    sh "kubectl apply -f prometheus-config.yaml"
+                    sh "kubectl apply -f prometheus.yaml"
+                    sh "kubectl apply -f grafana-datasources.yaml"
+                    sh "kubectl apply -f grafana.yaml"
+                    sh "kubectl apply -f loki.yaml"
+                    sh "kubectl apply -f promtail-config.yaml"
+                    sh "kubectl apply -f promtail.yaml"
+                    
+                    echo "Monitoring stack deployment completed"
                 }
             }
         }
@@ -615,3 +515,6 @@ spec:
         }
     }
 }
+
+
+
