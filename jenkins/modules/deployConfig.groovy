@@ -16,6 +16,7 @@ data:
   prometheus-ip: "10.100.0.20"
   grafana-ip: "10.100.0.21"
   loki-ip: "10.100.0.22"
+  mysql-exporter-ip: "10.100.0.23"
 '''
     writeFile file: "fixed-ips.yaml", text: configYaml
     sh "kubectl apply -f fixed-ips.yaml"

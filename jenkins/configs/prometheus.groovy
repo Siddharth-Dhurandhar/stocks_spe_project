@@ -51,6 +51,12 @@ data:
             labels:
               service: user-activity
               
+      - job_name: 'mysql'
+        static_configs:
+          - targets: ['mysql-exporter-service:9104']
+            labels:
+              service: mysql
+              
       - job_name: 'prometheus'
         metrics_path: '/metrics'
         static_configs:
