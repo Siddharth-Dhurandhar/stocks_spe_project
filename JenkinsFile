@@ -416,8 +416,6 @@ data:
     auth_enabled: false
     server:
       http_listen_port: 3100
-    
-    # Disable the ruler module
     ruler:
       storage:
         type: local
@@ -427,16 +425,11 @@ data:
       alertmanager_url: ""
       enable_api: false
       enable_alertmanager_v2: false
-      
     common:
       path_prefix: /tmp/loki
-      storage:
-        filesystem:
-          chunks_directory: /tmp/loki/chunks
       ring:
         kvstore:
           store: inmemory
-    
     schema_config:
       configs:
         - from: 2020-05-15
@@ -446,7 +439,6 @@ data:
           index:
             prefix: index_
             period: 24h
-    
     ingester:
       wal:
         enabled: true
@@ -456,10 +448,66 @@ data:
           kvstore:
             store: inmemory
           replication_factor: 1
-    
     storage_config:
       filesystem:
         directory: /tmp/loki/chunks
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  labels:
+    app: loki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      securityContext:
+        fsGroup: 10001
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+      - name: loki
+        image: grafana/loki:2.8.0
+        imagePullPolicy: Always
+        securityContext:
+          readOnlyRootFilesystem: false
+        args:
+        - -config.file=/etc/loki/loki.yaml
+        ports:
+        - containerPort: 3100
+          name: http
+        volumeMounts:
+        - name: loki-config
+          mountPath: /etc/loki
+        - name: loki-storage
+          mountPath: /tmp/loki
+      volumes:
+      - name: loki-config
+        configMap:
+          name: loki-config
+      - name: loki-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-service
+spec:
+  selector:
+    app: loki
+  ports:
+    - port: 3100
+      targetPort: 3100
+      nodePort: 30100
+  type: NodePort
+  clusterIP: "10.100.0.22"
 '''
 
                     // Promtail for log collection
