@@ -31,18 +31,23 @@ public class OutputService {
         // Get all stocks from repository
         List<StockMasterEntity> stocks = stockMasterRepository.findAll();
 
-        // For each stock, replace initialPrice with current price
+        // For each stock, replace initialPrice and volatility
         for (StockMasterEntity stock : stocks) {
             try {
-                String query = "SELECT price FROM stock_current_price WHERE stock_id = ?";
-                Float currentPrice = jdbcTemplate.queryForObject(query, Float.class, stock.getStockId());
+                String query = "SELECT price, percent_change FROM stock_current_price WHERE stock_id = ?";
+                Map<String, Object> result = jdbcTemplate.queryForMap(query, stock.getStockId());
 
                 // Replace initialPrice with current price if available
-                if (currentPrice != null) {
-                    stock.setInitialPrice(currentPrice);
+                if (result.get("price") != null) {
+                    stock.setInitialPrice(((Number) result.get("price")).floatValue());
+                }
+
+                // Replace volatility with percent_change if available
+                if (result.get("percent_change") != null) {
+                    stock.setVolatility(((Number) result.get("percent_change")).floatValue());
                 }
             } catch (EmptyResultDataAccessException e) {
-                // No current price found, keep initialPrice as is
+                // No current price found, keep initialPrice and volatility as is
                 continue;
             } catch (Exception e) {
                 // Log error but continue processing other stocks
@@ -184,10 +189,33 @@ public class OutputService {
 
     public StockMasterEntity getStockDetail(Long stockId) {
         try {
+            // First, get the stock details
             String query = "SELECT * FROM stock_master WHERE stock_id = ?";
-            return jdbcTemplate.queryForObject(query,
+            StockMasterEntity stock = jdbcTemplate.queryForObject(query,
                     new BeanPropertyRowMapper<>(StockMasterEntity.class),
                     stockId);
+
+            // If stock exists, get and set the current price and percent_change
+            if (stock != null) {
+                try {
+                    String currentDataQuery = "SELECT price, percent_change FROM stock_current_price WHERE stock_id = ?";
+                    Map<String, Object> result = jdbcTemplate.queryForMap(currentDataQuery, stockId);
+
+                    // Replace initialPrice with current price if available
+                    if (result.get("price") != null) {
+                        stock.setInitialPrice(((Number) result.get("price")).floatValue());
+                    }
+
+                    // Replace volatility with percent_change if available
+                    if (result.get("percent_change") != null) {
+                        stock.setVolatility(((Number) result.get("percent_change")).floatValue());
+                    }
+                } catch (EmptyResultDataAccessException e) {
+                    // No current price data found, keep original values
+                }
+            }
+
+            return stock;
         } catch (EmptyResultDataAccessException e) {
             return null;
         } catch (Exception e) {

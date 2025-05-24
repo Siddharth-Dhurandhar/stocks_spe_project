@@ -246,7 +246,7 @@ const AllStocks = () => {
                       color: "var(--text-muted)",
                     }}
                   >
-                    Volatility:{" "}
+                    Percent Change:{" "}
                     <span
                       style={{
                         color:
