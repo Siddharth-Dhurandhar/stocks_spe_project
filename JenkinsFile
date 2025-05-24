@@ -283,35 +283,35 @@ metadata:
   name: prometheus-config
 data:
   prometheus.yml: |
-  global:
-    scrape_interval: 15s
-  scrape_configs:
-    - job_name: 'spring-actuator'
-      metrics_path: '/actuator/prometheus'
-      static_configs:
-        - targets: ['gateway-service:80']
-          labels:
-            service: gateway
-        - targets: ['gateway-service:80'] 
-          labels:
-            service: outputmonitor
-          metrics_path: '/outputmonitor/actuator/prometheus'
-        - targets: ['gateway-service:80']
-          labels:
-            service: price-monitor
-          metrics_path: '/price-monitor/actuator/prometheus'
-        - targets: ['gateway-service:80']
-          labels:
-            service: signup
-          metrics_path: '/signup/actuator/prometheus'
-        - targets: ['gateway-service:80']
-          labels:
-            service: stock-ingestion
-          metrics_path: '/stock-ingestion/actuator/prometheus'
-        - targets: ['gateway-service:80']
-          labels:
-            service: user-activity
-          metrics_path: '/user-activity/actuator/prometheus'
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: 'spring-actuator'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['gateway-service:80']
+            labels:
+              service: gateway
+          - targets: ['gateway-service:80'] 
+            labels:
+              service: outputmonitor
+            metrics_path: '/outputmonitor/actuator/prometheus'
+          - targets: ['gateway-service:80']
+            labels:
+              service: price-monitor
+            metrics_path: '/price-monitor/actuator/prometheus'
+          - targets: ['gateway-service:80']
+            labels:
+              service: signup
+            metrics_path: '/signup/actuator/prometheus'
+          - targets: ['gateway-service:80']
+            labels:
+              service: stock-ingestion
+            metrics_path: '/stock-ingestion/actuator/prometheus'
+          - targets: ['gateway-service:80']
+            labels:
+              service: user-activity
+            metrics_path: '/user-activity/actuator/prometheus'
 '''
 
                     // Grafana deployment
