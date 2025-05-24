@@ -22,11 +22,35 @@ def execute(dockerRepo) {
         def k8sName = service.replaceAll('_', '-').toLowerCase()
         def isFrontend = (k8sName == 'frontend-nw')
         def serviceType = isFrontend ? 'NodePort' : 'ClusterIP'
-        def servicePort = isFrontend ? 30080 : 80
+        def servicePort = 80  // Internal port for all services
         def targetPort = isFrontend ? 80 : port
         
         def ipKey = k8sName.replaceAll('-nw', '') + '-ip'
         def fixedIp = serviceIps[ipKey]
+        
+        // Build the service YAML with conditional nodePort
+        def serviceYaml = """\
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${k8sName}-service
+spec:
+  selector:
+    app: ${k8sName}
+  ports:
+  - protocol: TCP
+    port: ${servicePort}
+    targetPort: ${targetPort}"""
+    
+        if (isFrontend) {
+            serviceYaml += """
+    nodePort: 31000"""
+        }
+        
+        serviceYaml += """
+  type: ${serviceType}
+  clusterIP: ${fixedIp}
+"""
         
         def statefulSetYaml = """\
 apiVersion: apps/v1
@@ -50,19 +74,7 @@ spec:
         ports:
         - containerPort: ${port}
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: ${k8sName}-service
-spec:
-  selector:
-    app: ${k8sName}
-  ports:
-  - protocol: TCP
-    port: ${servicePort}
-    targetPort: ${targetPort}
-  type: ${serviceType}
-  clusterIP: ${fixedIp}
+${serviceYaml}
 """
         writeFile file: "${k8sName}-statefulset.yaml", text: statefulSetYaml
         sh "kubectl apply -f ${k8sName}-statefulset.yaml"
