@@ -2,8 +2,8 @@ package com.gaurav.microservices.price_monitor.controller;
 
 import com.gaurav.microservices.price_monitor.service.StockPriceService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,9 +17,9 @@ public class PriceMonitorController {
         this.stockPriceService = stockPriceService;
     }
 
-    @PutMapping("/update-price")
-    public ResponseEntity<String> updatePrice() {
+    @EventListener(ApplicationReadyEvent.class)
+    public void startPriceUpdatesAutomatically() {
         stockPriceService.startScheduledUpdates();
-        return ResponseEntity.ok("Started scheduled price updates (every 5 seconds)");
+        System.out.println("Started scheduled price updates automatically");
     }
 }
