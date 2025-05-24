@@ -453,6 +453,12 @@ data:
       filesystem:
         directory: /tmp/loki/chunks
 
+    # Add a compactor block pointing to /tmp/loki/compactor
+    compactor:
+      working_directory: /tmp/loki/compactor
+      shared_store: filesystem
+      compaction_interval: 5m
+
     ruler:
       storage:
         type: local
