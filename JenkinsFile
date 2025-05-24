@@ -286,34 +286,53 @@ data:
     global:
       scrape_interval: 15s
     scrape_configs:
-      - job_name: 'spring-actuator'
+      - job_name: 'gateway'
         metrics_path: '/actuator/prometheus'
         static_configs:
           - targets: ['gateway-service:80']
             labels:
               service: gateway
-          - targets: ['gateway-service:80'] 
+              
+      - job_name: 'outputmonitor'
+        metrics_path: '/outputmonitor/actuator/prometheus'
+        static_configs:
+          - targets: ['gateway-service:80']
             labels:
               service: outputmonitor
-            metrics_path: '/outputmonitor/actuator/prometheus'
+              
+      - job_name: 'price-monitor'
+        metrics_path: '/price-monitor/actuator/prometheus'
+        static_configs:
           - targets: ['gateway-service:80']
             labels:
               service: price-monitor
-            metrics_path: '/price-monitor/actuator/prometheus'
+              
+      - job_name: 'signup'
+        metrics_path: '/signup/actuator/prometheus'
+        static_configs:
           - targets: ['gateway-service:80']
             labels:
               service: signup
-            metrics_path: '/signup/actuator/prometheus'
+              
+      - job_name: 'stock-ingestion'
+        metrics_path: '/stock-ingestion/actuator/prometheus'
+        static_configs:
           - targets: ['gateway-service:80']
             labels:
               service: stock-ingestion
-            metrics_path: '/stock-ingestion/actuator/prometheus'
+              
+      - job_name: 'user-activity'
+        metrics_path: '/user-activity/actuator/prometheus'
+        static_configs:
           - targets: ['gateway-service:80']
             labels:
               service: user-activity
-            metrics_path: '/user-activity/actuator/prometheus'
+              
+      - job_name: 'prometheus'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['localhost:9090']
 '''
-
                     // Grafana deployment
                     def grafanaYaml = '''
 apiVersion: apps/v1
