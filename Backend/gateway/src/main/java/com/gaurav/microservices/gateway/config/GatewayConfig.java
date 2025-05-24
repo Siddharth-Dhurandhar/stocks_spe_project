@@ -11,13 +11,14 @@ public class GatewayConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
+                // Add routes for each service's actuator endpoints
                 .route("gateway-actuator", r -> r
-                        .path("/gateway/actuator/**")
-                        .uri("lb://gateway")
+                        .path("/actuator/**")
+                        .uri("http://localhost:8085")
                 )
-                .route("stock-ingestion-actuator", r -> r
-                        .path("/stock-ingestion/actuator/**")
-                        .uri("lb://stock-ingestion")
+                .route("outputmonitor-actuator", r -> r
+                        .path("/outputmonitor/actuator/**")
+                        .uri("lb://outputmonitor")
                 )
                 .route("price-monitor-actuator", r -> r
                         .path("/price-monitor/actuator/**")
@@ -27,13 +28,13 @@ public class GatewayConfig {
                         .path("/signup/actuator/**")
                         .uri("lb://signup")
                 )
+                .route("stock-ingestion-actuator", r -> r
+                        .path("/stock-ingestion/actuator/**")
+                        .uri("lb://stock-ingestion")
+                )
                 .route("user-activity-actuator", r -> r
                         .path("/user-activity/actuator/**")
                         .uri("lb://user-activity")
-                )
-                .route("outputmonitor-actuator", r -> r
-                        .path("/outputmonitor/actuator/**")
-                        .uri("lb://outputmonitor")
                 )
                 .build();
     }
