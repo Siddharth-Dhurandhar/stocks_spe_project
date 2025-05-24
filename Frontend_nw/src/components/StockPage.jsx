@@ -33,11 +33,7 @@ const StockPage = () => {
     const fetchStockData = async () => {
       try {
         setIsLoading(true);
-        // In a real app, replace this with your actual API endpoint
-        // const response = await fetch(
-        //   `http://localhost:8085/output_monitor/retrieve/stockDetails/${id}`
-        // );
-
+        
         const response = await fetch(
           "/output_monitor/retrieve/stockDetail",
           {
@@ -46,7 +42,7 @@ const StockPage = () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              stockId: parseInt(id), // Send the stock ID as JSON
+              stockId: parseInt(id),
             }),
           }
         );
@@ -56,38 +52,28 @@ const StockPage = () => {
         }
 
         const data = await response.json();
-        setStockDetails(data);
-        console.log(data);
-
-        // Generate mock historical data based on stock's initial price and volatility
-        const generateMockPriceData = (initialPrice, volatility, days) => {
-          const data = [];
-          let currentPrice = initialPrice;
-
-          for (let i = days; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-
-            // Use volatility to determine price movement range
-            const maxChange = initialPrice * (volatility / 100) * 0.5;
-            const change = (Math.random() * 2 - 1) * maxChange;
-            currentPrice = Math.max(0.01, currentPrice + change);
-
-            data.push({
-              date: date.toISOString().split("T")[0],
-              price: parseFloat(currentPrice.toFixed(2)),
-            });
-          }
-
-          return data;
+        
+        // Log the exact data to debug
+        console.log("Stock data response:", data);
+        
+        // Make sure numeric values are properly parsed
+        const processedData = {
+          ...data,
+          initialPrice: parseFloat(data.initialPrice) || 0,
+          volatility: parseFloat(data.volatility) || 1
         };
+        
+        // Update state with processed data
+        setStockDetails(processedData);
+        console.log("Processed stock details:", processedData);
 
-        // Generate mock price data if real data isn't available
+        // Generate price data with the processed values
         const mockPriceData = generateMockPriceData(
-          data.initialPrice,
-          data.volatility,
+          processedData.initialPrice, 
+          processedData.volatility,
           30
         );
+        
         setPriceData(mockPriceData);
         setIsLoading(false);
       } catch (error) {
@@ -173,7 +159,8 @@ const StockPage = () => {
       setTotalPrice(0);
     } else {
       setErrorMessage("");
-      const price = stockDetails?.initialPrice || 0;
+      // Make sure we have a valid price
+      const price = parseFloat(stockDetails?.initialPrice) || 0;
       setTotalPrice((value * price).toFixed(2));
     }
   };
@@ -637,19 +624,18 @@ const StockPage = () => {
             </label>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "1rem",
-              padding: "0.75rem 1rem",
-              background: "rgba(255,255,255,0.05)",
-              borderRadius: "8px",
-            }}
-          >
+          {/* Market Price display */}
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "1rem",
+            padding: "0.75rem 1rem",
+            background: "rgba(255,255,255,0.05)",
+            borderRadius: "8px",
+          }}>
             <span style={{ color: "var(--text-secondary)" }}>Market Price</span>
             <span style={{ fontWeight: "600" }}>
-              ${stockDetails?.initialPrice}
+              ${(stockDetails?.initialPrice || 0).toFixed(2)}
             </span>
           </div>
 
