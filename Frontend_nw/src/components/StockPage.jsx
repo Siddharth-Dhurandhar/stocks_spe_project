@@ -361,10 +361,7 @@ const StockPage = () => {
                 color: isPriceUp ? "var(--accent-green)" : "#ef4444",
               }}
             >
-              $
-              {filteredData.length
-                ? filteredData[filteredData.length - 1].price
-                : "0.00"}
+              ${stockDetails?.initialPrice ? stockDetails.initialPrice.toFixed(2) : "0.00"}
             </div>
             <div
               style={{
