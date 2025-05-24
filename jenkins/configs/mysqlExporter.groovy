@@ -18,23 +18,33 @@ spec:
     spec:
       containers:
       - name: mysql-exporter
-        image: prom/mysqld-exporter:latest
+        image: prom/mysqld-exporter:v0.15.1
         ports:
         - containerPort: 9104
           name: metrics
         env:
         - name: DATA_SOURCE_NAME
-          value: "root:gaurav@(mysql:3306)/stockdb"
+          value: "root:gaurav@tcp(mysql:3306)/"
+        - name: MYSQLD_EXPORTER_WEB_LISTEN_ADDRESS
+          value: "0.0.0.0:9104"
         args:
-        - --collect.info_schema.processlist
-        - --collect.info_schema.innodb_tablespaces
-        - --collect.info_schema.innodb_metrics
+        - --web.listen-address=0.0.0.0:9104
         - --collect.global_status
         - --collect.global_variables
-        - --collect.slave_status
+        - --collect.info_schema.processlist
         - --collect.info_schema.tables
-        - --collect.info_schema.innodb_cmp
-        - --collect.info_schema.innodb_cmpmem
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 9104
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 9104
+          initialDelaySeconds: 5
+          periodSeconds: 5
 ---
 apiVersion: v1
 kind: Service
@@ -50,6 +60,13 @@ spec:
   clusterIP: "10.100.0.23"
 '''
 
+    // Delete existing deployment first to avoid conflicts
+    sh "kubectl delete deployment mysql-exporter --ignore-not-found=true"
+    sh "kubectl delete service mysql-exporter-service --ignore-not-found=true"
+    
+    // Wait a bit for cleanup
+    sh "sleep 5"
+    
     writeFile file: "mysql-exporter.yaml", text: mysqlExporterYaml
     sh "kubectl apply -f mysql-exporter.yaml"
 }
