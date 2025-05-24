@@ -296,11 +296,42 @@ data:
       - job_name: 'outputmonitor'
         metrics_path: '/actuator/prometheus'
         static_configs:
-          - targets: ['outputmonitor-service.default.svc.cluster.local']
+          - targets: ['outputmonitor-service:80']
             labels:
               service: outputmonitor
-      
-      # Add other services with the same pattern
+              
+      - job_name: 'price-monitor'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['price-monitor-service:80']
+            labels:
+              service: price-monitor
+              
+      - job_name: 'signup'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['signup-service:80']
+            labels:
+              service: signup
+              
+      - job_name: 'stock-ingestion'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['stock-ingestion-service:80']
+            labels:
+              service: stock-ingestion
+              
+      - job_name: 'user-activity'
+        metrics_path: '/actuator/prometheus'
+        static_configs:
+          - targets: ['user-activity-service:80']
+            labels:
+              service: user-activity
+              
+      - job_name: 'prometheus'
+        metrics_path: '/metrics'
+        static_configs:
+          - targets: ['localhost:9090']
 '''
                     // Grafana deployment
                     def grafanaYaml = '''
