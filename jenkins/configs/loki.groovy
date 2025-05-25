@@ -10,6 +10,7 @@ data:
     
     server:
       http_listen_port: 3100
+      log_level: info
 
     distributor:
       ring:
@@ -25,8 +26,11 @@ data:
           kvstore:
             store: inmemory
           replication_factor: 1
-      chunk_idle_period: 5m
-      chunk_retain_period: 1m
+        final_sleep: 0s
+      chunk_idle_period: 1h
+      max_chunk_age: 1h
+      chunk_retain_period: 30s
+      max_transfer_retries: 0
 
     schema_config:
       configs:
@@ -49,7 +53,7 @@ data:
     compactor:
       working_directory: /tmp/loki/compactor
       shared_store: filesystem
-      compaction_interval: 5m
+      compaction_interval: 10m
 
     ruler:
       storage:
@@ -63,6 +67,19 @@ data:
     limits_config:
       reject_old_samples: true
       reject_old_samples_max_age: 168h
+      ingestion_rate_mb: 16
+      ingestion_burst_size_mb: 32
+      max_line_size: 256000
+      max_label_name_length: 1024
+      max_label_value_length: 4096
+      max_label_names_per_series: 30
+
+    chunk_store_config:
+      max_look_back_period: 0s
+
+    table_manager:
+      retention_deletes_enabled: false
+      retention_period: 0s
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -91,30 +108,48 @@ spec:
         - -config.file=/etc/loki/loki.yaml
         ports:
         - containerPort: 3100
+          name: http-metrics
+        env:
+        - name: JAEGER_AGENT_HOST
+          value: ""
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: http-metrics
+          initialDelaySeconds: 45
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http-metrics
+          initialDelaySeconds: 45
         volumeMounts:
-        - name: loki-config
+        - name: config
           mountPath: /etc/loki
-        - name: loki-storage
+        - name: storage
           mountPath: /tmp/loki
       volumes:
-      - name: loki-config
+      - name: config
         configMap:
           name: loki-config
-      - name: loki-storage
+      - name: storage
         emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: loki-service
-spec:
-  selector:
+  labels:
     app: loki
+spec:
+  type: NodePort
   ports:
   - port: 3100
-    targetPort: 3100
+    protocol: TCP
+    name: http-metrics
+    targetPort: http-metrics
     nodePort: 30100
-  type: NodePort
+  selector:
+    app: loki
   clusterIP: "10.100.0.22"
 '''
 
@@ -122,6 +157,9 @@ spec:
     sh "kubectl delete deployment loki --ignore-not-found=true"
     sh "kubectl delete service loki-service --ignore-not-found=true"
     sh "kubectl delete configmap loki-config --ignore-not-found=true"
+
+    // Wait for cleanup
+    sh "sleep 10"
 
     writeFile file: "loki.yaml", text: lokiYaml
     sh "kubectl apply -f loki.yaml"
