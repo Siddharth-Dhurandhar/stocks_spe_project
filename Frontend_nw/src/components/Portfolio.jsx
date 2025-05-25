@@ -520,100 +520,388 @@ const Portfolio = () => {
               marginTop: "0",
               marginBottom: "1rem",
               fontSize: "1.25rem",
+              color: "var(--text-primary)",
             }}
           >
-            Allocation
+            Portfolio Allocation
           </h2>
 
-          <div style={{ height: "350px" }}>
+          <div style={{ height: "350px", position: "relative" }}>
+            {/* Glow effect behind chart */}
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: "140px",
+                height: "140px",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.05) 70%)",
+                filter: "blur(20px)",
+                zIndex: 0,
+              }}
+            ></div>
+
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
+                <defs>
+                  {/* Create gradients for each pie slice */}
+                  {COLORS.map((color, index) => (
+                    <linearGradient
+                      key={`gradient-${index}`}
+                      id={`pieColorGradient-${index}`}
+                      x1="0"
+                      y1="0"
+                      x2="1"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor={color} stopOpacity={0.9} />
+                      <stop offset="100%" stopColor={color} stopOpacity={0.6} />
+                    </linearGradient>
+                  ))}
+                </defs>
+
                 <Pie
                   data={portfolioStocks.map((stock) => ({
                     name: stock.stockName,
                     value: stock.investedAmount,
+                    percentage: (
+                      (stock.investedAmount / portfolioStocks.reduce(
+                        (sum, s) => sum + s.investedAmount,
+                        0
+                      )) *
+                      100
+                    ).toFixed(1),
                   }))}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  innerRadius={70}
-                  outerRadius={100}
-                  paddingAngle={4}
-                  fill="#8884d8"
+                  innerRadius={80}
+                  outerRadius={110}
+                  paddingAngle={6}
+                  strokeWidth={1}
+                  stroke="rgba(255, 255, 255, 0.1)"
+                  animationDuration={800}
+                  animationBegin={0}
+                  animationEasing="ease-out"
                 >
                   {portfolioStocks.map((_, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
+                      fill={`url(#pieColorGradient-${index % COLORS.length})`}
+                      style={{
+                        filter: "drop-shadow(0px 0px 6px rgba(255, 255, 255, 0.2))",
+                      }}
                     />
                   ))}
                 </Pie>
+
                 <Tooltip
-                  formatter={(value) => [
+                  formatter={(value, name, props) => [
                     `$${value.toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    })}`,
-                    "Invested Amount",
+                    })} (${props.payload.percentage}%)`,
+                    "Investment",
                   ]}
                   contentStyle={{
-                    background: "rgba(15, 23, 42, 0.8)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    background: "rgba(15, 23, 42, 0.95)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
                     borderRadius: "8px",
                     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+                    color: "var(--text-primary)",
                   }}
-                />
-                <Legend
-                  layout="vertical"
-                  verticalAlign="middle"
-                  align="right"
-                  wrapperStyle={{
-                    fontSize: "0.75rem",
-                    paddingLeft: "1rem",
+                  labelStyle={{
+                    color: "var(--text-primary)",
+                    fontWeight: "600",
+                    marginBottom: "4px",
+                  }}
+                  itemStyle={{
+                    color: "var(--text-secondary)",
                   }}
                 />
               </PieChart>
             </ResponsiveContainer>
-          </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "0.5rem",
-              marginTop: "1rem",
-            }}
-          >
-            {portfolioStocks.map((stock, index) => (
+            {/* Center content - Portfolio stats */}
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                textAlign: "center",
+                zIndex: 1,
+              }}
+            >
               <div
-                key={stock.stockId}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
                   fontSize: "0.75rem",
+                  color: "var(--text-muted)",
+                  marginBottom: "0.25rem",
                 }}
               >
+                Total Invested
+              </div>
+              <div
+                style={{
+                  fontSize: "1.125rem",
+                  fontWeight: "700",
+                  marginBottom: "0.25rem",
+                  background: "linear-gradient(90deg, #22c55e, #3b82f6)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                $
+                {portfolioStocks
+                  .reduce(
+                    (sum, stock) => sum + stock.investedAmount,
+                    0
+                  )
+                  .toLocaleString("en-US", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+              </div>
+              <div
+                style={{
+                  fontSize: "0.625rem",
+                  color: "var(--text-muted)",
+                }}
+              >
+                {portfolioStocks.length} Assets
+              </div>
+            </div>
+          </div>
+
+          {/* Enhanced Asset List */}
+          <div style={{ marginTop: "1.5rem" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "0.75rem",
+                padding: "0 0.25rem",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "0.875rem",
+                  fontWeight: "600",
+                  color: "var(--text-primary)",
+                }}
+              >
+                Holdings Breakdown
+              </span>
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  color: "var(--text-muted)",
+                }}
+              >
+                Amount
+              </span>
+            </div>
+
+            <div
+              style={{
+                maxHeight: "200px",
+                overflowY: "auto",
+                paddingRight: "0.5rem",
+              }}
+            >
+              {portfolioStocks
+                .sort((a, b) => b.investedAmount - a.investedAmount)
+                .map((stock, index) => {
+                  const percentage = (
+                    (stock.investedAmount /
+                      portfolioStocks.reduce(
+                        (sum, s) => sum + s.investedAmount,
+                        0
+                      )) *
+                    100
+                  );
+                  return (
+                    <div
+                      key={stock.stockId}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "0.75rem",
+                        marginBottom: "0.5rem",
+                        background: "rgba(255, 255, 255, 0.05)",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                          flex: 1,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "12px",
+                            height: "12px",
+                            borderRadius: "50%",
+                            background: COLORS[index % COLORS.length],
+                            boxShadow: `0 0 8px ${COLORS[index % COLORS.length]}40`,
+                            flexShrink: 0,
+                          }}
+                        ></div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontSize: "0.875rem",
+                              fontWeight: "600",
+                              color: "var(--text-primary)",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {stock.stockName}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "var(--text-muted)",
+                              marginTop: "0.125rem",
+                            }}
+                          >
+                            {stock.totalQuantity.toLocaleString()} shares
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          textAlign: "right",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "0.875rem",
+                            fontWeight: "600",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          ${stock.investedAmount.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          })}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.75rem",
+                            color:
+                              percentage >= 20
+                                ? "var(--accent-green)"
+                                : percentage >= 10
+                                ? "var(--accent-blue)"
+                                : "var(--text-muted)",
+                            fontWeight: "500",
+                          }}
+                        >
+                          {percentage.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+
+          {/* Summary Stats */}
+          <div
+            style={{
+              marginTop: "1rem",
+              padding: "1rem",
+              background: "rgba(59, 130, 246, 0.1)",
+              borderRadius: "8px",
+              border: "1px solid rgba(59, 130, 246, 0.2)",
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "1rem",
+              }}
+            >
+              <div>
                 <div
                   style={{
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    background: COLORS[index % COLORS.length],
-                  }}
-                ></div>
-                <div
-                  style={{
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
+                    fontSize: "0.75rem",
+                    color: "var(--text-muted)",
+                    marginBottom: "0.25rem",
                   }}
                 >
-                  {stock.stockName}
+                  Largest Position
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: "600",
+                    color: "var(--accent-blue)",
+                  }}
+                >
+                  {portfolioStocks.length > 0 &&
+                    Math.max(
+                      ...portfolioStocks.map(
+                        (s) =>
+                          (s.investedAmount /
+                            portfolioStocks.reduce(
+                              (sum, stock) => sum + stock.investedAmount,
+                              0
+                            )) *
+                          100
+                      )
+                    ).toFixed(1)}
+                  %
                 </div>
               </div>
-            ))}
+              <div>
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--text-muted)",
+                    marginBottom: "0.25rem",
+                  }}
+                >
+                  Diversification
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: "600",
+                    color:
+                      portfolioStocks.length >= 5
+                        ? "var(--accent-green)"
+                        : portfolioStocks.length >= 3
+                        ? "var(--accent-blue)"
+                        : "#ef4444",
+                  }}
+                >
+                  {portfolioStocks.length >= 5
+                    ? "Well Diversified"
+                    : portfolioStocks.length >= 3
+                    ? "Moderate"
+                    : "Concentrated"}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
