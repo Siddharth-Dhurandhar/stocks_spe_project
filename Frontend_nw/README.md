@@ -1,1 +1,1 @@
-#STOX - Frontend
+#STOX - Frontend.
